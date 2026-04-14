@@ -46,7 +46,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   return (
     <div className="relative">
       <div className="rounded-lg overflow-hidden neon-glow border border-border">
-        <div className="grid grid-cols-8 aspect-square w-[320px] sm:w-[400px] md:w-[480px] lg:w-[560px]">
+        <div className="grid grid-cols-8 grid-rows-8 aspect-square w-full max-w-[560px]">
           {ranks.map((rank, ri) =>
             files.map((file, fi) => {
               const square = `${file}${rank}` as Square;
@@ -65,7 +65,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
               return (
                 <button
                   key={square}
-                  className={`${bgClass} relative flex items-center justify-center transition-colors duration-100 cursor-pointer`}
+                  className={`${bgClass} relative flex items-center justify-center transition-colors duration-100 cursor-pointer aspect-square w-full h-full`}
                   onClick={() => onSquareClick(square)}
                 >
                   {isLegal && !piece && (
