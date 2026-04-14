@@ -26,7 +26,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <img src={chessxLogo} alt="ChessX" className="h-8 object-contain" />
         </div>
         <button
-          onClick={() => navigate('/auth')}
+          onClick={async () => {
+            const { supabase } = await import('@/integrations/supabase/client');
+            await supabase.auth.signOut();
+            navigate('/auth');
+          }}
           className="text-muted-foreground hover:text-foreground transition-colors"
           title="Sign out"
         >

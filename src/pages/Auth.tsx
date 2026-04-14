@@ -1,23 +1,56 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import chessxLogo from '@/assets/chessx-logo.jpg';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword,
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+    } else {
       navigate('/dashboard');
-    }, 800);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword,
+      options: {
+        data: { username: signupUsername, display_name: signupUsername },
+      },
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: 'Signup failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Check your email', description: 'We sent you a verification link.' });
+    }
   };
 
   return (
@@ -30,10 +63,7 @@ const Auth = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Zap className="text-primary" size={32} />
-            <h1 className="font-display text-3xl font-bold tracking-wider text-foreground">
-              CHESS<span className="text-primary">X</span>
-            </h1>
+            <img src={chessxLogo} alt="ChessX" className="h-12 object-contain" />
           </div>
           <p className="text-muted-foreground text-sm">
             Competitive chess on Base. Play. Stake. Win.
@@ -52,19 +82,19 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email" className="text-sm text-muted-foreground">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="login-email" type="email" placeholder="player@chessx.gg" className="pl-10 bg-secondary border-border focus:border-primary" />
+                    <Input id="login-email" type="email" placeholder="player@chessx.gg" className="pl-10 bg-secondary border-border focus:border-primary" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password" className="text-sm text-muted-foreground">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10 bg-secondary border-border focus:border-primary" />
+                    <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10 bg-secondary border-border focus:border-primary" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -78,26 +108,26 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-username" className="text-sm text-muted-foreground">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="signup-username" type="text" placeholder="YourHandle" className="pl-10 bg-secondary border-border focus:border-primary" />
+                    <Input id="signup-username" type="text" placeholder="YourHandle" className="pl-10 bg-secondary border-border focus:border-primary" value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-sm text-muted-foreground">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="signup-email" type="email" placeholder="player@chessx.gg" className="pl-10 bg-secondary border-border focus:border-primary" />
+                    <Input id="signup-email" type="email" placeholder="player@chessx.gg" className="pl-10 bg-secondary border-border focus:border-primary" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password" className="text-sm text-muted-foreground">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10 bg-secondary border-border focus:border-primary" />
+                    <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10 bg-secondary border-border focus:border-primary" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -120,7 +150,7 @@ const Auth = () => {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full font-display text-xs tracking-wider border-border hover:border-primary hover:text-primary" onClick={() => navigate('/dashboard')}>
+          <Button variant="outline" className="w-full font-display text-xs tracking-wider border-border hover:border-primary hover:text-primary">
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20.5 7H3.5C2.67 7 2 7.67 2 8.5v7c0 .83.67 1.5 1.5 1.5h17c.83 0 1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-2 6h-2v-2h2v2z" />
             </svg>

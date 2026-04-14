@@ -1,7 +1,9 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3 } from 'lucide-react';
-import { recentMatches, currentUser } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const terminationLabels: Record<string, string> = {
   checkmate: 'Checkmate',
@@ -12,25 +14,76 @@ const terminationLabels: Record<string, string> = {
 };
 
 const MatchHistory = () => {
-  const u = currentUser;
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
+
+  const userId = session?.user?.id;
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('username').eq('user_id', userId!).maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['matchHistory', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .or(`white_id.eq.${userId},black_id.eq.${userId}`)
+        .order('started_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const username = profile?.username ?? '';
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const games = matches ?? [];
 
   return (
     <AppLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold tracking-wider text-foreground">MATCH HISTORY</h2>
-          <span className="text-xs text-muted-foreground">{recentMatches.length} games</span>
+          <span className="text-xs text-muted-foreground">{games.length} games</span>
         </div>
 
+        {games.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">No games played yet.</div>
+        )}
+
         <div className="space-y-3">
-          {recentMatches.map((m) => {
-            const isWhite = m.white_username === u.username;
+          {games.map((m) => {
+            const isWhite = m.white_id === userId;
             const opponent = isWhite ? m.black_username : m.white_username;
             const won = (m.result === 'white' && isWhite) || (m.result === 'black' && !isWhite);
             const drew = m.result === 'draw';
             const ratingDelta = isWhite
-              ? (m.white_rating_after ?? 0) - m.white_rating_before
-              : (m.black_rating_after ?? 0) - m.black_rating_before;
+              ? (m.white_rating_after ?? 0) - (m.white_rating_before ?? 0)
+              : (m.black_rating_after ?? 0) - (m.black_rating_before ?? 0);
             const accuracy = isWhite ? m.white_accuracy : m.black_accuracy;
             const resultLabel = won ? 'WIN' : drew ? 'DRAW' : 'LOSS';
             const resultColor = won ? 'text-primary bg-primary/10 border-primary/30' : drew ? 'text-muted-foreground bg-muted/30 border-border' : 'text-destructive bg-destructive/10 border-destructive/30';
@@ -54,7 +107,7 @@ const MatchHistory = () => {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-foreground font-semibold">vs {opponent}</span>
+                    <span className="text-foreground font-semibold">vs {opponent ?? 'Unknown'}</span>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {m.termination && terminationLabels[m.termination]} · {new Date(m.started_at).toLocaleDateString()}
                     </div>

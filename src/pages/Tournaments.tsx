@@ -1,8 +1,10 @@
 import React from 'react';
 import { Trophy, Users, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { tournaments } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const statusStyles: Record<string, { label: string; cls: string }> = {
   registration: { label: 'OPEN', cls: 'text-primary bg-primary/10 border-primary/30' },
@@ -19,19 +21,48 @@ const formatLabels: Record<string, string> = {
 };
 
 const Tournaments = () => {
+  const { data: tournamentList, isLoading } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const list = tournamentList ?? [];
+
   return (
     <AppLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold tracking-wider text-foreground">TOURNAMENTS</h2>
           <span className="text-xs text-muted-foreground font-display tracking-widest">
-            {tournaments.filter((t) => t.status === 'registration').length} OPEN
+            {list.filter((t) => t.status === 'registration').length} OPEN
           </span>
         </div>
 
+        {list.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">No tournaments available yet.</div>
+        )}
+
         <div className="space-y-3">
-          {tournaments.map((t) => {
-            const st = statusStyles[t.status];
+          {list.map((t) => {
+            const st = statusStyles[t.status] ?? statusStyles.completed;
             const spotsLeft = t.max_players - t.current_players;
             const fillPct = (t.current_players / t.max_players) * 100;
 
@@ -44,7 +75,7 @@ const Tournaments = () => {
                       <h3 className="font-display text-sm font-bold text-foreground">{t.name}</h3>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>{formatLabels[t.format]}</span>
+                      <span>{formatLabels[t.format] ?? t.format}</span>
                       <span className="flex items-center gap-0.5"><Clock size={10} /> {t.time_control}</span>
                     </div>
                   </div>
@@ -57,12 +88,12 @@ const Tournaments = () => {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <div className="bg-secondary rounded-lg px-3 py-2">
                     <div className="text-xs text-muted-foreground">Prize Pool</div>
-                    <div className="font-display font-bold text-accent">${t.prize_pool_usdc.toLocaleString()}</div>
+                    <div className="font-display font-bold text-accent">${Number(t.prize_pool_usdc).toLocaleString()}</div>
                   </div>
                   <div className="bg-secondary rounded-lg px-3 py-2">
                     <div className="text-xs text-muted-foreground">Entry Fee</div>
                     <div className="font-display font-bold text-foreground">
-                      {t.entry_fee_usdc > 0 ? `$${t.entry_fee_usdc}` : 'FREE'}
+                      {Number(t.entry_fee_usdc) > 0 ? `$${t.entry_fee_usdc}` : 'FREE'}
                     </div>
                   </div>
                 </div>
@@ -93,7 +124,7 @@ const Tournaments = () => {
                     className="w-full font-display text-xs tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
                     size="sm"
                   >
-                    {t.entry_fee_usdc > 0 ? `ENTER — $${t.entry_fee_usdc}` : 'ENTER FREE'}
+                    {Number(t.entry_fee_usdc) > 0 ? `ENTER — $${t.entry_fee_usdc}` : 'ENTER FREE'}
                   </Button>
                 )}
               </div>
