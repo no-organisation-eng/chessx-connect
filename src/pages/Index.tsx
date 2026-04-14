@@ -41,8 +41,8 @@ const Index = () => {
         />
       )}
 
-      <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
-        <div className="flex flex-col gap-3 w-full max-w-md mx-auto lg:mx-0">
+      <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full">
+        <div className="flex flex-col gap-3 w-full max-w-[560px] mx-auto lg:mx-0">
           <PlayerPanel
             name={aiEnabled ? 'ChessX AI' : 'Player 2'}
             color="b"
