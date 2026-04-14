@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Zap, LayoutDashboard, Trophy, Swords, History, Award, LogOut } from 'lucide-react';
+import { LayoutDashboard, Trophy, Swords, History, Award, LogOut } from 'lucide-react';
+import chessxLogo from '@/assets/chessx-logo.jpg';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,10 +23,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <Zap className="text-primary" size={20} />
-          <span className="font-display text-lg font-bold tracking-wider text-foreground">
-            CHESS<span className="text-primary">X</span>
-          </span>
+          <img src={chessxLogo} alt="ChessX" className="h-8 object-contain" />
         </div>
         <button
           onClick={() => navigate('/auth')}
