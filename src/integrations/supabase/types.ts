@@ -14,7 +14,227 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      games: {
+        Row: {
+          black_accuracy: number | null
+          black_id: string | null
+          black_rating_after: number | null
+          black_rating_before: number | null
+          black_username: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          increment_seconds: number
+          pgn: string | null
+          result: string | null
+          stake_usdc: number
+          started_at: string
+          termination: string | null
+          time_control: string
+          time_seconds: number
+          white_accuracy: number | null
+          white_id: string | null
+          white_rating_after: number | null
+          white_rating_before: number | null
+          white_username: string | null
+        }
+        Insert: {
+          black_accuracy?: number | null
+          black_id?: string | null
+          black_rating_after?: number | null
+          black_rating_before?: number | null
+          black_username?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          increment_seconds?: number
+          pgn?: string | null
+          result?: string | null
+          stake_usdc?: number
+          started_at?: string
+          termination?: string | null
+          time_control?: string
+          time_seconds?: number
+          white_accuracy?: number | null
+          white_id?: string | null
+          white_rating_after?: number | null
+          white_rating_before?: number | null
+          white_username?: string | null
+        }
+        Update: {
+          black_accuracy?: number | null
+          black_id?: string | null
+          black_rating_after?: number | null
+          black_rating_before?: number | null
+          black_username?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          increment_seconds?: number
+          pgn?: string | null
+          result?: string | null
+          stake_usdc?: number
+          started_at?: string
+          termination?: string | null
+          time_control?: string
+          time_seconds?: number
+          white_accuracy?: number | null
+          white_id?: string | null
+          white_rating_after?: number | null
+          white_rating_before?: number | null
+          white_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_black_id_fkey"
+            columns: ["black_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "games_white_id_fkey"
+            columns: ["white_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          draws: number
+          id: string
+          losses: number
+          platform_rating: number
+          skill_tier: string
+          total_earnings_usdc: number
+          trust_score: number
+          updated_at: string
+          user_id: string
+          username: string | null
+          wallet_address: string | null
+          wins: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          draws?: number
+          id?: string
+          losses?: number
+          platform_rating?: number
+          skill_tier?: string
+          total_earnings_usdc?: number
+          trust_score?: number
+          updated_at?: string
+          user_id: string
+          username?: string | null
+          wallet_address?: string | null
+          wins?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          draws?: number
+          id?: string
+          losses?: number
+          platform_rating?: number
+          skill_tier?: string
+          total_earnings_usdc?: number
+          trust_score?: number
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+          wallet_address?: string | null
+          wins?: number
+        }
+        Relationships: []
+      }
+      tournament_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string
+          current_players: number
+          entry_fee_usdc: number
+          format: string
+          id: string
+          max_players: number
+          max_rating: number | null
+          min_rating: number | null
+          name: string
+          prize_pool_usdc: number
+          starts_at: string | null
+          status: string
+          time_control: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_players?: number
+          entry_fee_usdc?: number
+          format?: string
+          id?: string
+          max_players?: number
+          max_rating?: number | null
+          min_rating?: number | null
+          name: string
+          prize_pool_usdc?: number
+          starts_at?: string | null
+          status?: string
+          time_control?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_players?: number
+          entry_fee_usdc?: number
+          format?: string
+          id?: string
+          max_players?: number
+          max_rating?: number | null
+          min_rating?: number | null
+          name?: string
+          prize_pool_usdc?: number
+          starts_at?: string | null
+          status?: string
+          time_control?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
