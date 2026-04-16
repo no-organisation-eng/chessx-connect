@@ -10,7 +10,7 @@ const MoveHistory: React.FC<MoveHistoryProps> = ({ moves }) => {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
   }, [moves.length]);
 
@@ -24,48 +24,39 @@ const MoveHistory: React.FC<MoveHistoryProps> = ({ moves }) => {
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-2 border-b border-border">
-        <h3 className="font-display text-xs tracking-widest uppercase text-muted-foreground">
-          Moves
-        </h3>
-      </div>
-      <div ref={scrollRef} className="max-h-[280px] overflow-y-auto p-2">
-        {pairs.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            Game hasn't started yet
-          </p>
-        ) : (
-          <div className="space-y-0.5">
-            {pairs.map((pair) => (
-              <div
-                key={pair.num}
-                className="grid grid-cols-[2rem_1fr_1fr] gap-1 text-sm"
+    <div
+      ref={scrollRef}
+      className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide py-1.5 px-2 bg-card border border-border rounded-lg min-h-[36px]"
+    >
+      {pairs.length === 0 ? (
+        <span className="text-xs text-muted-foreground whitespace-nowrap">No moves yet</span>
+      ) : (
+        pairs.map((pair) => (
+          <React.Fragment key={pair.num}>
+            <span className="text-[10px] text-muted-foreground shrink-0">{pair.num}.</span>
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded shrink-0 font-medium transition-colors ${
+                moves.length === pair.num * 2 - 1
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-foreground hover:bg-secondary'
+              }`}
+            >
+              {pair.white}
+            </span>
+            {pair.black && (
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded shrink-0 font-medium transition-colors ${
+                  moves.length === pair.num * 2
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-foreground hover:bg-secondary'
+                }`}
               >
-                <span className="text-muted-foreground text-right pr-2">
-                  {pair.num}.
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded cursor-default hover:bg-secondary transition-colors ${
-                    moves.length === pair.num * 2 - 1 ? 'bg-primary/10 text-primary' : 'text-foreground'
-                  }`}
-                >
-                  {pair.white}
-                </span>
-                {pair.black && (
-                  <span
-                    className={`px-2 py-0.5 rounded cursor-default hover:bg-secondary transition-colors ${
-                      moves.length === pair.num * 2 ? 'bg-primary/10 text-primary' : 'text-foreground'
-                    }`}
-                  >
-                    {pair.black}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                {pair.black}
+              </span>
+            )}
+          </React.Fragment>
+        ))
+      )}
     </div>
   );
 };
