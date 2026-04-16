@@ -15,6 +15,8 @@ export interface GameState {
   moveHistory: Move[];
   lastMove: { from: Square; to: Square } | null;
   capturedPieces: { w: string[]; b: string[] };
+  resignation?: 'w' | 'b';
+  agreedDraw?: boolean;
 }
 
 function deriveState(g: Chess): GameState {
@@ -52,6 +54,11 @@ export function useChessGame() {
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [moveCount, setMoveCount] = useState(0);
+  const [drawProposed, setDrawProposed] = useState(false);
+  const [takebackProposed, setTakebackProposed] = useState(false);
+
+  // Game started state
+  const [gameStarted, setGameStarted] = useState(false);
 
   // AI
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -70,21 +77,13 @@ export function useChessGame() {
   const gameStartedRef = useRef(false);
 
   const playMoveSound = useCallback((move: Move, state: GameState) => {
-    if (state.isCheckmate) {
-      sounds.playCheckmate();
-    } else if (state.isGameOver) {
-      sounds.playGameOver();
-    } else if (state.isCheck) {
-      sounds.playCheck();
-    } else if (move.flags.includes('k') || move.flags.includes('q')) {
-      sounds.playCastle();
-    } else if (move.flags.includes('p')) {
-      sounds.playPromotion();
-    } else if (move.captured) {
-      sounds.playCapture();
-    } else {
-      sounds.playMove();
-    }
+    if (state.isCheckmate) sounds.playCheckmate();
+    else if (state.isGameOver) sounds.playGameOver();
+    else if (state.isCheck) sounds.playCheck();
+    else if (move.flags.includes('k') || move.flags.includes('q')) sounds.playCastle();
+    else if (move.flags.includes('p')) sounds.playPromotion();
+    else if (move.captured) sounds.playCapture();
+    else sounds.playMove();
   }, [sounds]);
 
   const afterMove = useCallback((move: Move) => {
@@ -93,6 +92,8 @@ export function useChessGame() {
     setSelectedSquare(null);
     setLegalMoves([]);
     setMoveCount((c) => c + 1);
+    setDrawProposed(false);
+    setTakebackProposed(false);
     playMoveSound(move, newState);
 
     if (!gameStartedRef.current) {
@@ -187,6 +188,55 @@ export function useChessGame() {
     }
   }, [timer.flagged]);
 
+  const resign = useCallback(() => {
+    const loser = game.turn() as 'w' | 'b';
+    timer.stopClock();
+    setGameState((prev) => ({ ...prev, isGameOver: true, resignation: loser }));
+    sounds.playGameOver();
+  }, [game, timer, sounds]);
+
+  const proposeDraw = useCallback(() => {
+    if (aiEnabled) {
+      // AI accepts draw ~30% of the time
+      const accepted = Math.random() < 0.3;
+      if (accepted) {
+        timer.stopClock();
+        setGameState((prev) => ({ ...prev, isGameOver: true, isDraw: true, agreedDraw: true }));
+        sounds.playGameOver();
+      } else {
+        setDrawProposed(true);
+      }
+    } else {
+      // In local play, draw is accepted immediately
+      timer.stopClock();
+      setGameState((prev) => ({ ...prev, isGameOver: true, isDraw: true, agreedDraw: true }));
+      sounds.playGameOver();
+    }
+  }, [aiEnabled, timer, sounds]);
+
+  const proposeTakeback = useCallback(() => {
+    if (aiEnabled) {
+      // AI accepts takeback ~50% of time
+      const accepted = Math.random() < 0.5;
+      if (accepted) {
+        game.undo();
+        game.undo();
+        setGameState(deriveState(game));
+        setSelectedSquare(null);
+        setLegalMoves([]);
+        setPendingPromotion(null);
+      } else {
+        setTakebackProposed(true);
+      }
+    } else {
+      game.undo();
+      setGameState(deriveState(game));
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setPendingPromotion(null);
+    }
+  }, [game, aiEnabled]);
+
   const resetGame = useCallback(() => {
     game.reset();
     setGameState(deriveState(game));
@@ -195,26 +245,18 @@ export function useChessGame() {
     setPendingPromotion(null);
     setMoveCount(0);
     setAiThinking(false);
+    setDrawProposed(false);
+    setTakebackProposed(false);
+    setGameStarted(false);
     gameStartedRef.current = false;
     timer.resetTimer();
   }, [game, timer]);
 
-  const undoMove = useCallback(() => {
-    if (aiEnabled) {
-      game.undo();
-      game.undo();
-    } else {
-      game.undo();
-    }
-    setGameState(deriveState(game));
-    setSelectedSquare(null);
-    setLegalMoves([]);
-    setPendingPromotion(null);
-  }, [game, aiEnabled]);
-
-  const changeTimeControl = useCallback((name: string) => {
-    setTimeControlName(name);
-    setTimerConfig(TIME_CONTROLS[name]);
+  const startGame = useCallback((timeControl: string, vsAI: boolean, difficulty: AIDifficulty) => {
+    setTimeControlName(timeControl);
+    setTimerConfig(TIME_CONTROLS[timeControl]);
+    setAiEnabled(vsAI);
+    setAiDifficulty(difficulty);
     game.reset();
     setGameState(deriveState(game));
     setSelectedSquare(null);
@@ -222,13 +264,11 @@ export function useChessGame() {
     setPendingPromotion(null);
     setMoveCount(0);
     setAiThinking(false);
+    setDrawProposed(false);
+    setTakebackProposed(false);
     gameStartedRef.current = false;
+    setGameStarted(true);
   }, [game]);
-
-  const toggleAI = useCallback(() => {
-    setAiEnabled((v) => !v);
-    resetGame();
-  }, [resetGame]);
 
   return {
     gameState,
@@ -238,14 +278,17 @@ export function useChessGame() {
     handleSquareClick,
     handlePromotion,
     resetGame,
-    undoMove,
+    resign,
+    proposeDraw,
+    proposeTakeback,
+    drawProposed,
+    takebackProposed,
     aiEnabled,
     aiDifficulty,
     aiThinking,
-    toggleAI,
-    setAiDifficulty,
     timer,
     timeControlName,
-    changeTimeControl,
+    gameStarted,
+    startGame,
   };
 }
