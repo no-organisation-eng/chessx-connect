@@ -8,6 +8,27 @@ interface GameStatusProps {
 }
 
 const GameStatus: React.FC<GameStatusProps> = ({ gameState, flagged }) => {
+  if (gameState.resignation) {
+    const winner = gameState.resignation === 'w' ? 'Black' : 'White';
+    return (
+      <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/30">
+        <Trophy className="text-accent" size={20} />
+        <span className="font-display text-sm font-bold text-destructive">
+          RESIGNED — {winner} wins!
+        </span>
+      </div>
+    );
+  }
+
+  if (gameState.agreedDraw) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-accent/10 border border-accent/30 amber-glow">
+        <Handshake className="text-accent" size={20} />
+        <span className="font-display text-sm font-bold text-accent">DRAW — By agreement</span>
+      </div>
+    );
+  }
+
   if (flagged) {
     const winner = flagged === 'w' ? 'Black' : 'White';
     return (
