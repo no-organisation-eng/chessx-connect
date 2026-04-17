@@ -329,6 +329,7 @@ export function useChessGame() {
     setDrawProposed(false);
     setTakebackProposed(false);
     gameStartedRef.current = false;
+    savedRef.current = false;
     setGameStarted(true);
   }, [game]);
 
