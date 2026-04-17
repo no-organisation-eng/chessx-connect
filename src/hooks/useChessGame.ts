@@ -3,6 +3,8 @@ import { Chess, Square, Move } from 'chess.js';
 import { useChessTimer, TimerConfig, TIME_CONTROLS } from './useChessTimer';
 import { useChessSounds } from './useChessSounds';
 import { useChessAI, AIDifficulty } from './useChessAI';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface GameState {
   fen: string;
@@ -188,6 +190,65 @@ export function useChessGame() {
     }
   }, [timer.flagged]);
 
+  // Save game on completion
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (!gameState.isGameOver || savedRef.current || !gameStarted) return;
+    savedRef.current = true;
+
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, platform_rating')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      let result: 'white' | 'black' | 'draw' | null = null;
+      let termination: string | null = null;
+
+      if (gameState.resignation) {
+        result = gameState.resignation === 'w' ? 'black' : 'white';
+        termination = 'resign';
+      } else if (gameState.isCheckmate) {
+        result = gameState.turn === 'w' ? 'black' : 'white';
+        termination = 'checkmate';
+      } else if (timer.flagged) {
+        result = gameState.turn === 'w' ? 'black' : 'white';
+        termination = 'timeout';
+      } else if (gameState.agreedDraw) {
+        result = 'draw';
+        termination = 'agreement';
+      } else if (gameState.isStalemate) {
+        result = 'draw';
+        termination = 'stalemate';
+      } else if (gameState.isDraw) {
+        result = 'draw';
+        termination = 'agreement';
+      }
+
+      if (!result) return;
+
+      const { error } = await supabase.from('games').insert({
+        white_id: user.id,
+        white_username: profile?.username ?? 'You',
+        black_username: aiEnabled ? 'ChessX AI' : 'Opponent',
+        result,
+        termination,
+        pgn: game.pgn(),
+        time_control: timeControlName,
+        time_seconds: timerConfig.initialTime,
+        increment_seconds: timerConfig.increment,
+        white_rating_before: profile?.platform_rating ?? 1200,
+        ended_at: new Date().toISOString(),
+      });
+
+      if (!error) toast.success('Game saved to history');
+    })();
+  }, [gameState.isGameOver]);
+
   const resign = useCallback(() => {
     const loser = game.turn() as 'w' | 'b';
     timer.stopClock();
@@ -249,6 +310,7 @@ export function useChessGame() {
     setTakebackProposed(false);
     setGameStarted(false);
     gameStartedRef.current = false;
+    savedRef.current = false;
     timer.resetTimer();
   }, [game, timer]);
 
@@ -267,6 +329,7 @@ export function useChessGame() {
     setDrawProposed(false);
     setTakebackProposed(false);
     gameStartedRef.current = false;
+    savedRef.current = false;
     setGameStarted(true);
   }, [game]);
 

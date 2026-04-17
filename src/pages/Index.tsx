@@ -1,6 +1,6 @@
 import React from 'react';
 import ChessBoard from '@/components/chess/ChessBoard';
-import PlayerPanel from '@/components/chess/PlayerPanel';
+import PlayerBar from '@/components/chess/PlayerBar';
 import MoveHistory from '@/components/chess/MoveHistory';
 import GameStatus from '@/components/chess/GameStatus';
 import GameActions from '@/components/chess/GameActions';
@@ -44,13 +44,11 @@ const Index = () => {
             />
           )}
 
-          <div className="flex flex-col items-center w-full max-w-[560px] mx-auto gap-2">
-            {/* Game status */}
+          <div className="flex flex-col w-full max-w-[640px] mx-auto gap-1.5">
             <GameStatus gameState={gameState} flagged={timer.flagged} />
 
-            {/* Top player */}
-            <PlayerPanel
-              name={aiEnabled ? 'ChessX AI' : 'Player 2'}
+            <PlayerBar
+              name={aiEnabled ? 'ChessX AI' : 'Opponent'}
               color="b"
               isActive={gameState.turn === 'b'}
               capturedPieces={gameState.capturedPieces.b}
@@ -58,7 +56,6 @@ const Index = () => {
               isLowTime={!timer.isUnlimited && timer.blackTime < 30}
             />
 
-            {/* Board */}
             <ChessBoard
               gameState={gameState}
               selectedSquare={selectedSquare}
@@ -66,9 +63,8 @@ const Index = () => {
               onSquareClick={handleSquareClick}
             />
 
-            {/* Bottom player */}
-            <PlayerPanel
-              name="Player 1"
+            <PlayerBar
+              name="You"
               color="w"
               isActive={gameState.turn === 'w'}
               capturedPieces={gameState.capturedPieces.w}
@@ -76,10 +72,8 @@ const Index = () => {
               isLowTime={!timer.isUnlimited && timer.whiteTime < 30}
             />
 
-            {/* Horizontal move history */}
             <MoveHistory moves={gameState.moveHistory} />
 
-            {/* Game actions: takeback, draw, resign, or new game */}
             <GameActions
               onResign={resign}
               onProposeDraw={proposeDraw}
@@ -91,17 +85,15 @@ const Index = () => {
               takebackProposed={takebackProposed}
             />
 
-            {aiThinking && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span>AI thinking...</span>
-              </div>
-            )}
-
-            {/* Time control label */}
-            <span className="text-[10px] text-muted-foreground font-display tracking-widest uppercase">
-              {timeControlName}
-            </span>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-display tracking-widest uppercase px-1">
+              <span>{timeControlName}</span>
+              {aiThinking && (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 border border-primary border-t-transparent rounded-full animate-spin" />
+                  AI THINKING
+                </span>
+              )}
+            </div>
           </div>
         </>
       )}
