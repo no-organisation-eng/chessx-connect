@@ -1,10 +1,11 @@
 import React from 'react';
-import { Trophy, Users, Clock, Zap } from 'lucide-react';
+import { Trophy, Users, Clock, Zap, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { buildInviteUrl, copyInvite } from '@/lib/invite';
 
 const statusStyles: Record<string, { label: string; cls: string }> = {
   registration: { label: 'OPEN', cls: 'text-primary bg-primary/10 border-primary/30' },
@@ -119,14 +120,25 @@ const Tournaments = () => {
                   </div>
                 )}
 
-                {t.status === 'registration' && (
+                <div className="flex gap-2">
+                  {t.status === 'registration' && (
+                    <Button
+                      className="flex-1 font-display text-xs tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+                      size="sm"
+                    >
+                      {Number(t.entry_fee_usdc) > 0 ? `ENTER — $${t.entry_fee_usdc}` : 'ENTER FREE'}
+                    </Button>
+                  )}
                   <Button
-                    className="w-full font-display text-xs tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+                    variant="outline"
                     size="sm"
+                    className="font-display text-xs tracking-wider"
+                    onClick={() => copyInvite(buildInviteUrl(`/tournaments?t=${t.id}`), 'Tournament invite')}
+                    title="Copy invite link"
                   >
-                    {Number(t.entry_fee_usdc) > 0 ? `ENTER — $${t.entry_fee_usdc}` : 'ENTER FREE'}
+                    <Link2 size={14} />
                   </Button>
-                )}
+                </div>
               </div>
             );
           })}
