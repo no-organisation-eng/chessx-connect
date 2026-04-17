@@ -38,7 +38,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 pb-20 max-w-2xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 pb-20 max-w-2xl mx-auto w-full">
         {children}
       </main>
 
