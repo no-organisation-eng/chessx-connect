@@ -82,8 +82,15 @@ const Dashboard = () => {
   }
 
   const u = profile;
-  const gamesPlayed = u.wins + u.losses + u.draws;
-  const winRate = gamesPlayed > 0 ? Math.round((u.wins / gamesPlayed) * 100) : 0;
+  const wins = u.wins ?? 0;
+  const losses = u.losses ?? 0;
+  const draws = u.draws ?? 0;
+  const rating = u.platform_rating ?? 1200;
+  const earnings = u.total_earnings_usdc ?? 0;
+  const trust = u.trust_score ?? 100;
+  const tier = u.skill_tier ?? 'Beginner';
+  const gamesPlayed = wins + losses + draws;
+  const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
 
   return (
     <AppLayout>
@@ -96,13 +103,13 @@ const Dashboard = () => {
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="font-display text-xl font-bold text-foreground">{u.username ?? 'Player'}</h2>
-                <span className={`font-display text-xs tracking-widest uppercase ${tierColors[u.skill_tier] ?? 'text-muted-foreground'}`}>
-                  {u.skill_tier}
+                <span className={`font-display text-xs tracking-widest uppercase ${tierColors[tier] ?? 'text-muted-foreground'}`}>
+                  {tier}
                 </span>
               </div>
               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                 <span>Joined {new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-                <span>Trust: {u.trust_score}%</span>
+                <span>Trust: {trust}%</span>
               </div>
             </div>
             <Button onClick={() => navigate('/play')} className="font-display tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 neon-glow">
@@ -112,10 +119,10 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={<Trophy size={18} />} label="Rating" value={u.platform_rating.toString()} accent="text-primary" />
+          <StatCard icon={<Trophy size={18} />} label="Rating" value={String(rating)} accent="text-primary" />
           <StatCard icon={<Target size={18} />} label="Win Rate" value={`${winRate}%`} accent="text-primary" />
-          <StatCard icon={<Flame size={18} />} label="Games" value={gamesPlayed.toString()} accent="text-accent" />
-          <StatCard icon={<Swords size={18} />} label="Earnings" value={`$${u.total_earnings_usdc}`} accent="text-foreground" />
+          <StatCard icon={<Flame size={18} />} label="Games" value={String(gamesPlayed)} accent="text-accent" />
+          <StatCard icon={<Swords size={18} />} label="Earnings" value={`$${earnings}`} accent="text-foreground" />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
