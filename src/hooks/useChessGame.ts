@@ -3,6 +3,8 @@ import { Chess, Square, Move } from 'chess.js';
 import { useChessTimer, TimerConfig, TIME_CONTROLS } from './useChessTimer';
 import { useChessSounds } from './useChessSounds';
 import { useChessAI, AIDifficulty } from './useChessAI';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface GameState {
   fen: string;
