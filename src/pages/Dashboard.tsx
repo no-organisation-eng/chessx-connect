@@ -127,15 +127,15 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-display font-bold text-primary">{u.wins}</div>
+            <div className="text-2xl font-display font-bold text-primary">{wins}</div>
             <div className="text-xs text-muted-foreground mt-1">Wins</div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-display font-bold text-destructive">{u.losses}</div>
+            <div className="text-2xl font-display font-bold text-destructive">{losses}</div>
             <div className="text-xs text-muted-foreground mt-1">Losses</div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-display font-bold text-muted-foreground">{u.draws}</div>
+            <div className="text-2xl font-display font-bold text-muted-foreground">{draws}</div>
             <div className="text-xs text-muted-foreground mt-1">Draws</div>
           </div>
         </div>
