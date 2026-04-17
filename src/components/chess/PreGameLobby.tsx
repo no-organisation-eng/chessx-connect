@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Swords, Bot, User } from 'lucide-react';
+import { Clock, Swords, Bot, User, Link2 } from 'lucide-react';
 import { TIME_CONTROLS } from '@/hooks/useChessTimer';
 import type { AIDifficulty } from '@/hooks/useChessAI';
+import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 interface PreGameLobbyProps {
   onStartGame: (timeControl: string, vsAI: boolean, difficulty: AIDifficulty) => void;
@@ -145,6 +146,21 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
           >
             PLAY
           </button>
+
+          {!vsAI && (
+            <button
+              onClick={() => {
+                if (!selectedTime) return;
+                const code = generateInviteCode();
+                const url = buildInviteUrl(`/play/${code}?tc=${encodeURIComponent(selectedTime)}`);
+                copyInvite(url, 'Game invite');
+              }}
+              disabled={!selectedTime}
+              className="w-full -mt-3 py-2.5 rounded-lg bg-secondary text-foreground font-display text-xs tracking-widest uppercase font-medium hover:bg-secondary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 border border-border"
+            >
+              <Link2 size={14} /> COPY INVITE LINK
+            </button>
+          )}
         </>
       )}
     </div>
