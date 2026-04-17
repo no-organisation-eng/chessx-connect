@@ -7,7 +7,7 @@ import GameActions from '@/components/chess/GameActions';
 import PromotionDialog from '@/components/chess/PromotionDialog';
 import PreGameLobby from '@/components/chess/PreGameLobby';
 import AppLayout from '@/components/layout/AppLayout';
-import { useChessGame } from '@/hooks/useChessGame';
+import { useChessGameContext } from '@/contexts/ChessGameContext';
 
 const Index = () => {
   const {
@@ -29,7 +29,7 @@ const Index = () => {
     timeControlName,
     gameStarted,
     startGame,
-  } = useChessGame();
+  } = useChessGameContext();
 
   return (
     <AppLayout>
