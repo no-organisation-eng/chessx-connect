@@ -310,6 +310,7 @@ export function useChessGame() {
     setTakebackProposed(false);
     setGameStarted(false);
     gameStartedRef.current = false;
+    savedRef.current = false;
     timer.resetTimer();
   }, [game, timer]);
 
