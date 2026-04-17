@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link2 } from 'lucide-react';
 import ChessBoard from '@/components/chess/ChessBoard';
 import PlayerBar from '@/components/chess/PlayerBar';
 import MoveHistory from '@/components/chess/MoveHistory';
@@ -8,6 +9,7 @@ import PromotionDialog from '@/components/chess/PromotionDialog';
 import PreGameLobby from '@/components/chess/PreGameLobby';
 import AppLayout from '@/components/layout/AppLayout';
 import { useChessGameContext } from '@/contexts/ChessGameContext';
+import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 const Index = () => {
   const {
@@ -87,12 +89,23 @@ const Index = () => {
 
             <div className="flex items-center justify-between text-[10px] text-muted-foreground font-display tracking-widest uppercase px-1">
               <span>{timeControlName}</span>
-              {aiThinking && (
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 border border-primary border-t-transparent rounded-full animate-spin" />
-                  AI THINKING
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {aiThinking && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 border border-primary border-t-transparent rounded-full animate-spin" />
+                    AI THINKING
+                  </span>
+                )}
+                {!aiEnabled && !gameState.isGameOver && (
+                  <button
+                    onClick={() => copyInvite(buildInviteUrl(`/play/${generateInviteCode()}?tc=${encodeURIComponent(timeControlName)}`), 'Game invite')}
+                    className="flex items-center gap-1 hover:text-primary transition-colors"
+                    title="Copy invite link"
+                  >
+                    <Link2 size={11} /> INVITE
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </>
