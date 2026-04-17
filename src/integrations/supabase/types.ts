@@ -17,6 +17,7 @@ export type Database = {
       games: {
         Row: {
           black_accuracy: number | null
+          black_funded: boolean
           black_id: string | null
           black_rating_after: number | null
           black_rating_before: number | null
@@ -25,14 +26,19 @@ export type Database = {
           ended_at: string | null
           id: string
           increment_seconds: number
+          invite_id: string | null
+          live_fen: string | null
           pgn: string | null
           result: string | null
           stake_usdc: number
           started_at: string
+          status: string
           termination: string | null
           time_control: string
           time_seconds: number
+          turn: string | null
           white_accuracy: number | null
+          white_funded: boolean
           white_id: string | null
           white_rating_after: number | null
           white_rating_before: number | null
@@ -40,6 +46,7 @@ export type Database = {
         }
         Insert: {
           black_accuracy?: number | null
+          black_funded?: boolean
           black_id?: string | null
           black_rating_after?: number | null
           black_rating_before?: number | null
@@ -48,14 +55,19 @@ export type Database = {
           ended_at?: string | null
           id?: string
           increment_seconds?: number
+          invite_id?: string | null
+          live_fen?: string | null
           pgn?: string | null
           result?: string | null
           stake_usdc?: number
           started_at?: string
+          status?: string
           termination?: string | null
           time_control?: string
           time_seconds?: number
+          turn?: string | null
           white_accuracy?: number | null
+          white_funded?: boolean
           white_id?: string | null
           white_rating_after?: number | null
           white_rating_before?: number | null
@@ -63,6 +75,7 @@ export type Database = {
         }
         Update: {
           black_accuracy?: number | null
+          black_funded?: boolean
           black_id?: string | null
           black_rating_after?: number | null
           black_rating_before?: number | null
@@ -71,14 +84,19 @@ export type Database = {
           ended_at?: string | null
           id?: string
           increment_seconds?: number
+          invite_id?: string | null
+          live_fen?: string | null
           pgn?: string | null
           result?: string | null
           stake_usdc?: number
           started_at?: string
+          status?: string
           termination?: string | null
           time_control?: string
           time_seconds?: number
+          turn?: string | null
           white_accuracy?: number | null
+          white_funded?: boolean
           white_id?: string | null
           white_rating_after?: number | null
           white_rating_before?: number | null
@@ -101,6 +119,102 @@ export type Database = {
           },
         ]
       }
+      match_invites: {
+        Row: {
+          accepted_at: string | null
+          code: string
+          created_at: string
+          creator_color: string
+          creator_id: string
+          expires_at: string
+          game_id: string | null
+          id: string
+          increment_seconds: number
+          stake_usdc: number
+          status: string
+          time_control: string
+          time_seconds: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          code: string
+          created_at?: string
+          creator_color?: string
+          creator_id: string
+          expires_at?: string
+          game_id?: string | null
+          id?: string
+          increment_seconds?: number
+          stake_usdc?: number
+          status?: string
+          time_control?: string
+          time_seconds?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          code?: string
+          created_at?: string
+          creator_color?: string
+          creator_id?: string
+          expires_at?: string
+          game_id?: string | null
+          id?: string
+          increment_seconds?: number
+          stake_usdc?: number
+          status?: string
+          time_control?: string
+          time_seconds?: number
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_usdc: number
+          created_at: string
+          from_address: string
+          game_id: string | null
+          id: string
+          invite_id: string | null
+          network: string
+          raw_payload: Json | null
+          status: string
+          to_address: string
+          tx_id: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount_usdc: number
+          created_at?: string
+          from_address: string
+          game_id?: string | null
+          id?: string
+          invite_id?: string | null
+          network: string
+          raw_payload?: Json | null
+          status?: string
+          to_address: string
+          tx_id: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount_usdc?: number
+          created_at?: string
+          from_address?: string
+          game_id?: string | null
+          id?: string
+          invite_id?: string | null
+          network?: string
+          raw_payload?: Json | null
+          status?: string
+          to_address?: string
+          tx_id?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -117,6 +231,7 @@ export type Database = {
           user_id: string
           username: string | null
           wallet_address: string | null
+          wallet_verified_at: string | null
           wins: number
         }
         Insert: {
@@ -134,6 +249,7 @@ export type Database = {
           user_id: string
           username?: string | null
           wallet_address?: string | null
+          wallet_verified_at?: string | null
           wins?: number
         }
         Update: {
@@ -151,6 +267,7 @@ export type Database = {
           user_id?: string
           username?: string | null
           wallet_address?: string | null
+          wallet_verified_at?: string | null
           wins?: number
         }
         Relationships: []
