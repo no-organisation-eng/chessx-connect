@@ -21,6 +21,9 @@ export interface RealtimeGameRow {
   stake_usdc: number;
   white_funded: boolean;
   black_funded: boolean;
+  white_time_ms: number | null;
+  black_time_ms: number | null;
+  last_move_at: string | null;
 }
 
 export interface RealtimeGameState {
