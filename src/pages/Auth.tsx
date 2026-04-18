@@ -151,11 +151,28 @@ const Auth = () => {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full font-display text-xs tracking-wider border-border hover:border-primary hover:text-primary">
+          <Button
+            variant="outline"
+            className="w-full font-display text-xs tracking-wider border-border hover:border-primary hover:text-primary"
+            disabled={isLoading}
+            onClick={async () => {
+              setIsLoading(true);
+              try {
+                const { signInWithBase } = await import('@/lib/base');
+                const res = await signInWithBase();
+                toast({ title: 'Connected', description: `Wallet ${res.address.slice(0, 6)}…${res.address.slice(-4)}` });
+                navigate('/dashboard');
+              } catch (e) {
+                toast({ title: 'Wallet sign-in failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+          >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20.5 7H3.5C2.67 7 2 7.67 2 8.5v7c0 .83.67 1.5 1.5 1.5h17c.83 0 1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-2 6h-2v-2h2v2z" />
+              <circle cx="12" cy="12" r="10" />
             </svg>
-            CONNECT WALLET
+            SIGN IN WITH BASE
           </Button>
         </div>
 
