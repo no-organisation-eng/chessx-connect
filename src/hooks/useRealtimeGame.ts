@@ -21,6 +21,9 @@ export interface RealtimeGameRow {
   stake_usdc: number;
   white_funded: boolean;
   black_funded: boolean;
+  white_time_ms: number | null;
+  black_time_ms: number | null;
+  last_move_at: string | null;
 }
 
 export interface RealtimeGameState {
@@ -131,7 +134,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   }, [gameId, applyRow]);
 
   const pushMove = useCallback(async (move: Move) => {
-    if (!gameId) return;
+    if (!gameId || !row) return;
     const newFen = game.fen();
     const newPgn = game.pgn();
     const turn = game.turn() as 'w' | 'b';
@@ -147,26 +150,51 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
       result = 'draw'; termination = 'agreement';
     }
 
-    const update = isOver
+    // Compute clock: subtract elapsed since last_move_at from the side that just moved,
+    // then add the increment.
+    const moverColor = move.color as 'w' | 'b';
+    const now = Date.now();
+    const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
+    const baseRemaining = moverColor === 'w'
+      ? row.white_time_ms ?? row.time_seconds * 1000
+      : row.black_time_ms ?? row.time_seconds * 1000;
+    const elapsed = Math.max(0, now - lastTs);
+    const increment = (row.increment_seconds ?? 0) * 1000;
+    const newRemaining = Math.max(0, baseRemaining - elapsed + increment);
+
+    const flagged = newRemaining <= 0 && !isOver;
+    if (flagged) {
+      result = moverColor === 'w' ? 'black' : 'white';
+      termination = 'timeout';
+    }
+
+    const baseUpdate = {
+      live_fen: newFen,
+      pgn: newPgn,
+      turn,
+      last_move_at: new Date(now).toISOString(),
+      ...(moverColor === 'w'
+        ? { white_time_ms: newRemaining }
+        : { black_time_ms: newRemaining }),
+    };
+
+    const update = (isOver || flagged)
       ? {
-          live_fen: newFen,
-          pgn: newPgn,
-          turn,
+          ...baseUpdate,
           status: 'completed' as const,
           result: result ?? undefined,
           termination: termination ?? undefined,
           ended_at: new Date().toISOString(),
         }
-      : { live_fen: newFen, pgn: newPgn, turn };
+      : baseUpdate;
 
     const { error } = await supabase.from('games').update(update).eq('id', gameId);
     if (error) {
       toast.error('Move failed: ' + error.message);
-      // rollback local
       game.undo();
       setGameState(deriveFromChess(game));
     }
-  }, [game, gameId]);
+  }, [game, gameId, row]);
 
   const isPromotion = useCallback((from: Square, to: Square): boolean => {
     const piece = game.get(from);
@@ -236,6 +264,42 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     }).eq('id', gameId);
   }, [gameId, myColor]);
 
+  // Live clock tick
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!row || row.status !== 'active') return;
+    const id = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(id);
+  }, [row?.status, row?.last_move_at]);
+
+  const computeRemaining = (color: 'w' | 'b'): number => {
+    if (!row) return 0;
+    const stored = (color === 'w' ? row.white_time_ms : row.black_time_ms)
+      ?? row.time_seconds * 1000;
+    if (row.status !== 'active' || row.turn !== color) return Math.max(0, stored);
+    const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
+    return Math.max(0, stored - (now - lastTs));
+  };
+
+  const whiteTimeMs = computeRemaining('w');
+  const blackTimeMs = computeRemaining('b');
+
+  // Auto-flag: if it's my turn and my clock hits 0, push timeout result
+  useEffect(() => {
+    if (!row || !gameId || !myColor || row.status !== 'active') return;
+    if (row.turn !== myColor) return;
+    const myTime = myColor === 'w' ? whiteTimeMs : blackTimeMs;
+    if (myTime > 0) return;
+    const result = myColor === 'w' ? 'black' : 'white';
+    supabase.from('games').update({
+      status: 'completed',
+      result,
+      termination: 'timeout',
+      ended_at: new Date().toISOString(),
+      ...(myColor === 'w' ? { white_time_ms: 0 } : { black_time_ms: 0 }),
+    }).eq('id', gameId);
+  }, [whiteTimeMs, blackTimeMs, row, myColor, gameId]);
+
   return {
     row,
     gameState,
@@ -247,5 +311,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     resign,
     loading,
     myColor,
+    whiteTimeMs,
+    blackTimeMs,
   };
 }

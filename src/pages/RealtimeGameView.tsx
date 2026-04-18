@@ -160,6 +160,15 @@ const RealtimeGameView: React.FC = () => {
   const myName = game.myColor === 'w' ? game.row.white_username : game.row.black_username;
   const flipped = game.myColor === 'b';
 
+  const fmt = (ms: number) => {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+  const myTimeMs = game.myColor === 'w' ? game.whiteTimeMs : game.blackTimeMs;
+  const oppTimeMs = game.myColor === 'w' ? game.blackTimeMs : game.whiteTimeMs;
+
   return (
     <AppLayout>
       {game.pendingPromotion && (
@@ -180,7 +189,7 @@ const RealtimeGameView: React.FC = () => {
           color={flipped ? 'w' : 'b'}
           isActive={game.gameState.turn !== game.myColor}
           capturedPieces={flipped ? game.gameState.capturedPieces.w : game.gameState.capturedPieces.b}
-          timeLeft="∞"
+          timeLeft={fmt(oppTimeMs)}
         />
 
         <ChessBoard
@@ -196,7 +205,7 @@ const RealtimeGameView: React.FC = () => {
           color={flipped ? 'b' : 'w'}
           isActive={game.gameState.turn === game.myColor}
           capturedPieces={flipped ? game.gameState.capturedPieces.b : game.gameState.capturedPieces.w}
-          timeLeft="∞"
+          timeLeft={fmt(myTimeMs)}
         />
 
         <MoveHistory moves={game.gameState.moveHistory} />
