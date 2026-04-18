@@ -134,7 +134,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   }, [gameId, applyRow]);
 
   const pushMove = useCallback(async (move: Move) => {
-    if (!gameId) return;
+    if (!gameId || !row) return;
     const newFen = game.fen();
     const newPgn = game.pgn();
     const turn = game.turn() as 'w' | 'b';
@@ -150,26 +150,51 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
       result = 'draw'; termination = 'agreement';
     }
 
-    const update = isOver
+    // Compute clock: subtract elapsed since last_move_at from the side that just moved,
+    // then add the increment.
+    const moverColor = move.color as 'w' | 'b';
+    const now = Date.now();
+    const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
+    const baseRemaining = moverColor === 'w'
+      ? row.white_time_ms ?? row.time_seconds * 1000
+      : row.black_time_ms ?? row.time_seconds * 1000;
+    const elapsed = Math.max(0, now - lastTs);
+    const increment = (row.increment_seconds ?? 0) * 1000;
+    const newRemaining = Math.max(0, baseRemaining - elapsed + increment);
+
+    const flagged = newRemaining <= 0 && !isOver;
+    if (flagged) {
+      result = moverColor === 'w' ? 'black' : 'white';
+      termination = 'timeout';
+    }
+
+    const baseUpdate = {
+      live_fen: newFen,
+      pgn: newPgn,
+      turn,
+      last_move_at: new Date(now).toISOString(),
+      ...(moverColor === 'w'
+        ? { white_time_ms: newRemaining }
+        : { black_time_ms: newRemaining }),
+    };
+
+    const update = (isOver || flagged)
       ? {
-          live_fen: newFen,
-          pgn: newPgn,
-          turn,
+          ...baseUpdate,
           status: 'completed' as const,
           result: result ?? undefined,
           termination: termination ?? undefined,
           ended_at: new Date().toISOString(),
         }
-      : { live_fen: newFen, pgn: newPgn, turn };
+      : baseUpdate;
 
     const { error } = await supabase.from('games').update(update).eq('id', gameId);
     if (error) {
       toast.error('Move failed: ' + error.message);
-      // rollback local
       game.undo();
       setGameState(deriveFromChess(game));
     }
-  }, [game, gameId]);
+  }, [game, gameId, row]);
 
   const isPromotion = useCallback((from: Square, to: Square): boolean => {
     const piece = game.get(from);
