@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import ChessBoard from '@/components/chess/ChessBoard';
 import PlayerBar from '@/components/chess/PlayerBar';
 import MoveHistory from '@/components/chess/MoveHistory';
@@ -8,10 +9,14 @@ import GameActions from '@/components/chess/GameActions';
 import PromotionDialog from '@/components/chess/PromotionDialog';
 import PreGameLobby from '@/components/chess/PreGameLobby';
 import AppLayout from '@/components/layout/AppLayout';
+import RealtimeGameView from './RealtimeGameView';
 import { useChessGameContext } from '@/contexts/ChessGameContext';
 import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 const Index = () => {
+  const { inviteCode } = useParams<{ inviteCode?: string }>();
+  if (inviteCode) return <RealtimeGameView />;
+
   const {
     gameState,
     selectedSquare,

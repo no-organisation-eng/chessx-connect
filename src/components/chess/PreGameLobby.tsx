@@ -149,16 +149,33 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
 
           {!vsAI && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedTime) return;
-                const code = generateInviteCode();
-                const url = buildInviteUrl(`/play/${code}?tc=${encodeURIComponent(selectedTime)}`);
-                copyInvite(url, 'Game invite');
+                try {
+                  const cfg = TIME_CONTROLS[selectedTime];
+                  const { supabase } = await import('@/integrations/supabase/client');
+                  const { data, error } = await supabase.functions.invoke('create-match-invite', {
+                    body: {
+                      time_control: selectedTime,
+                      time_seconds: cfg.initialTime === Infinity ? 0 : cfg.initialTime,
+                      increment_seconds: cfg.increment,
+                    },
+                  });
+                  if (error) throw error;
+                  if (!data?.ok) throw new Error(data?.error ?? 'Could not create invite');
+                  const url = buildInviteUrl(`/play/${data.invite.code}`);
+                  await copyInvite(url, 'Game invite');
+                } catch (e) {
+                  const { toast } = await import('sonner');
+                  toast.error('Could not create invite', {
+                    description: e instanceof Error ? e.message : 'Unknown error',
+                  });
+                }
               }}
               disabled={!selectedTime}
               className="w-full -mt-3 py-2.5 rounded-lg bg-secondary text-foreground font-display text-xs tracking-widest uppercase font-medium hover:bg-secondary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 border border-border"
             >
-              <Link2 size={14} /> COPY INVITE LINK
+              <Link2 size={14} /> CREATE INVITE LINK
             </button>
           )}
         </>
