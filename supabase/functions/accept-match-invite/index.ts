@@ -94,6 +94,9 @@ Deno.serve(async (req) => {
         invite_id: invite.id,
         white_funded: stake === 0,
         black_funded: stake === 0,
+        white_time_ms: invite.time_seconds * 1000,
+        black_time_ms: invite.time_seconds * 1000,
+        last_move_at: status === 'active' ? new Date().toISOString() : null,
       })
       .select('*')
       .single();
