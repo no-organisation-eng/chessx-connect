@@ -21,12 +21,14 @@ export type Database = {
           black_id: string | null
           black_rating_after: number | null
           black_rating_before: number | null
+          black_time_ms: number | null
           black_username: string | null
           created_at: string
           ended_at: string | null
           id: string
           increment_seconds: number
           invite_id: string | null
+          last_move_at: string | null
           live_fen: string | null
           pgn: string | null
           result: string | null
@@ -42,6 +44,7 @@ export type Database = {
           white_id: string | null
           white_rating_after: number | null
           white_rating_before: number | null
+          white_time_ms: number | null
           white_username: string | null
         }
         Insert: {
@@ -50,12 +53,14 @@ export type Database = {
           black_id?: string | null
           black_rating_after?: number | null
           black_rating_before?: number | null
+          black_time_ms?: number | null
           black_username?: string | null
           created_at?: string
           ended_at?: string | null
           id?: string
           increment_seconds?: number
           invite_id?: string | null
+          last_move_at?: string | null
           live_fen?: string | null
           pgn?: string | null
           result?: string | null
@@ -71,6 +76,7 @@ export type Database = {
           white_id?: string | null
           white_rating_after?: number | null
           white_rating_before?: number | null
+          white_time_ms?: number | null
           white_username?: string | null
         }
         Update: {
@@ -79,12 +85,14 @@ export type Database = {
           black_id?: string | null
           black_rating_after?: number | null
           black_rating_before?: number | null
+          black_time_ms?: number | null
           black_username?: string | null
           created_at?: string
           ended_at?: string | null
           id?: string
           increment_seconds?: number
           invite_id?: string | null
+          last_move_at?: string | null
           live_fen?: string | null
           pgn?: string | null
           result?: string | null
@@ -100,6 +108,7 @@ export type Database = {
           white_id?: string | null
           white_rating_after?: number | null
           white_rating_before?: number | null
+          white_time_ms?: number | null
           white_username?: string | null
         }
         Relationships: [
