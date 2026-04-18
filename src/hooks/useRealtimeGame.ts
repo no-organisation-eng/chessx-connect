@@ -147,17 +147,17 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
       result = 'draw'; termination = 'agreement';
     }
 
-    const update: Record<string, unknown> = {
-      live_fen: newFen,
-      pgn: newPgn,
-      turn,
-    };
-    if (isOver) {
-      update.status = 'completed';
-      update.result = result;
-      update.termination = termination;
-      update.ended_at = new Date().toISOString();
-    }
+    const update = isOver
+      ? {
+          live_fen: newFen,
+          pgn: newPgn,
+          turn,
+          status: 'completed' as const,
+          result: result ?? undefined,
+          termination: termination ?? undefined,
+          ended_at: new Date().toISOString(),
+        }
+      : { live_fen: newFen, pgn: newPgn, turn };
 
     const { error } = await supabase.from('games').update(update).eq('id', gameId);
     if (error) {
