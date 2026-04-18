@@ -264,6 +264,42 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     }).eq('id', gameId);
   }, [gameId, myColor]);
 
+  // Live clock tick
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!row || row.status !== 'active') return;
+    const id = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(id);
+  }, [row?.status, row?.last_move_at]);
+
+  const computeRemaining = (color: 'w' | 'b'): number => {
+    if (!row) return 0;
+    const stored = (color === 'w' ? row.white_time_ms : row.black_time_ms)
+      ?? row.time_seconds * 1000;
+    if (row.status !== 'active' || row.turn !== color) return Math.max(0, stored);
+    const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
+    return Math.max(0, stored - (now - lastTs));
+  };
+
+  const whiteTimeMs = computeRemaining('w');
+  const blackTimeMs = computeRemaining('b');
+
+  // Auto-flag: if it's my turn and my clock hits 0, push timeout result
+  useEffect(() => {
+    if (!row || !gameId || !myColor || row.status !== 'active') return;
+    if (row.turn !== myColor) return;
+    const myTime = myColor === 'w' ? whiteTimeMs : blackTimeMs;
+    if (myTime > 0) return;
+    const result = myColor === 'w' ? 'black' : 'white';
+    supabase.from('games').update({
+      status: 'completed',
+      result,
+      termination: 'timeout',
+      ended_at: new Date().toISOString(),
+      ...(myColor === 'w' ? { white_time_ms: 0 } : { black_time_ms: 0 }),
+    }).eq('id', gameId);
+  }, [whiteTimeMs, blackTimeMs, row, myColor, gameId]);
+
   return {
     row,
     gameState,
@@ -275,5 +311,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     resign,
     loading,
     myColor,
+    whiteTimeMs,
+    blackTimeMs,
   };
 }
