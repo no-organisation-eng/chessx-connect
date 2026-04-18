@@ -14,6 +14,9 @@ import { useChessGameContext } from '@/contexts/ChessGameContext';
 import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 const Index = () => {
+  const { inviteCode } = useParams<{ inviteCode?: string }>();
+  if (inviteCode) return <RealtimeGameView />;
+
   const {
     gameState,
     selectedSquare,
