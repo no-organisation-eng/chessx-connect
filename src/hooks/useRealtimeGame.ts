@@ -24,6 +24,8 @@ export interface RealtimeGameRow {
   white_time_ms: number | null;
   black_time_ms: number | null;
   last_move_at: string | null;
+  pending_draw_from: 'w' | 'b' | null;
+  pending_takeback_from: 'w' | 'b' | null;
 }
 
 export interface RealtimeGameState {
@@ -264,7 +266,59 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     }).eq('id', gameId);
   }, [gameId, myColor]);
 
-  // Live clock tick
+  const offerDraw = useCallback(async () => {
+    if (!gameId || !myColor || !row || row.status !== 'active') return;
+    if (row.pending_draw_from) return;
+    await supabase.from('games').update({ pending_draw_from: myColor }).eq('id', gameId);
+    toast.success('Draw offer sent');
+  }, [gameId, myColor, row]);
+
+  const acceptDraw = useCallback(async () => {
+    if (!gameId || !row?.pending_draw_from || row.pending_draw_from === myColor) return;
+    await supabase.from('games').update({
+      status: 'completed',
+      result: 'draw',
+      termination: 'agreement',
+      ended_at: new Date().toISOString(),
+      pending_draw_from: null,
+    }).eq('id', gameId);
+  }, [gameId, row, myColor]);
+
+  const declineDraw = useCallback(async () => {
+    if (!gameId) return;
+    await supabase.from('games').update({ pending_draw_from: null }).eq('id', gameId);
+  }, [gameId]);
+
+  const offerTakeback = useCallback(async () => {
+    if (!gameId || !myColor || !row || row.status !== 'active') return;
+    if (row.pending_takeback_from) return;
+    if (game.history().length === 0) return;
+    await supabase.from('games').update({ pending_takeback_from: myColor }).eq('id', gameId);
+    toast.success('Takeback request sent');
+  }, [gameId, myColor, row, game]);
+
+  const acceptTakeback = useCallback(async () => {
+    if (!gameId || !row?.pending_takeback_from || row.pending_takeback_from === myColor) return;
+    // Undo the last move (made by the requester)
+    game.undo();
+    const newFen = game.fen();
+    const newPgn = game.pgn();
+    const newTurn = game.turn() as 'w' | 'b';
+    await supabase.from('games').update({
+      live_fen: newFen,
+      pgn: newPgn,
+      turn: newTurn,
+      pending_takeback_from: null,
+      last_move_at: new Date().toISOString(),
+    }).eq('id', gameId);
+    setGameState(deriveFromChess(game));
+  }, [gameId, row, myColor, game]);
+
+  const declineTakeback = useCallback(async () => {
+    if (!gameId) return;
+    await supabase.from('games').update({ pending_takeback_from: null }).eq('id', gameId);
+  }, [gameId]);
+
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!row || row.status !== 'active') return;
@@ -309,6 +363,12 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     handleSquareClick,
     handlePromotion,
     resign,
+    offerDraw,
+    acceptDraw,
+    declineDraw,
+    offerTakeback,
+    acceptTakeback,
+    declineTakeback,
     loading,
     myColor,
     whiteTimeMs,

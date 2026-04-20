@@ -30,6 +30,8 @@ export type Database = {
           invite_id: string | null
           last_move_at: string | null
           live_fen: string | null
+          pending_draw_from: string | null
+          pending_takeback_from: string | null
           pgn: string | null
           result: string | null
           stake_usdc: number
@@ -62,6 +64,8 @@ export type Database = {
           invite_id?: string | null
           last_move_at?: string | null
           live_fen?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
           pgn?: string | null
           result?: string | null
           stake_usdc?: number
@@ -94,6 +98,8 @@ export type Database = {
           invite_id?: string | null
           last_move_at?: string | null
           live_fen?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
           pgn?: string | null
           result?: string | null
           stake_usdc?: number
