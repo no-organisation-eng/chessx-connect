@@ -14,123 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      games: {
+      anticheat_flags: {
         Row: {
-          black_accuracy: number | null
-          black_funded: boolean
-          black_id: string | null
-          black_rating_after: number | null
-          black_rating_before: number | null
-          black_time_ms: number | null
-          black_username: string | null
           created_at: string
-          ended_at: string | null
+          details: Json | null
+          flag_type: string
           id: string
-          increment_seconds: number
-          invite_id: string | null
-          last_move_at: string | null
-          live_fen: string | null
-          pending_draw_from: string | null
-          pending_takeback_from: string | null
-          pgn: string | null
-          result: string | null
-          stake_usdc: number
-          started_at: string
-          status: string
-          termination: string | null
-          time_control: string
-          time_seconds: number
-          turn: string | null
-          white_accuracy: number | null
-          white_funded: boolean
-          white_id: string | null
-          white_rating_after: number | null
-          white_rating_before: number | null
-          white_time_ms: number | null
-          white_username: string | null
+          match_id: string | null
+          resolution: string | null
+          reviewed_by: string | null
+          severity: string
+          user_id: string
         }
         Insert: {
-          black_accuracy?: number | null
-          black_funded?: boolean
-          black_id?: string | null
-          black_rating_after?: number | null
-          black_rating_before?: number | null
-          black_time_ms?: number | null
-          black_username?: string | null
           created_at?: string
-          ended_at?: string | null
+          details?: Json | null
+          flag_type: string
           id?: string
-          increment_seconds?: number
-          invite_id?: string | null
-          last_move_at?: string | null
-          live_fen?: string | null
-          pending_draw_from?: string | null
-          pending_takeback_from?: string | null
-          pgn?: string | null
-          result?: string | null
-          stake_usdc?: number
-          started_at?: string
-          status?: string
-          termination?: string | null
-          time_control?: string
-          time_seconds?: number
-          turn?: string | null
-          white_accuracy?: number | null
-          white_funded?: boolean
-          white_id?: string | null
-          white_rating_after?: number | null
-          white_rating_before?: number | null
-          white_time_ms?: number | null
-          white_username?: string | null
+          match_id?: string | null
+          resolution?: string | null
+          reviewed_by?: string | null
+          severity: string
+          user_id: string
         }
         Update: {
-          black_accuracy?: number | null
-          black_funded?: boolean
-          black_id?: string | null
-          black_rating_after?: number | null
-          black_rating_before?: number | null
-          black_time_ms?: number | null
-          black_username?: string | null
           created_at?: string
-          ended_at?: string | null
+          details?: Json | null
+          flag_type?: string
           id?: string
-          increment_seconds?: number
-          invite_id?: string | null
-          last_move_at?: string | null
-          live_fen?: string | null
-          pending_draw_from?: string | null
-          pending_takeback_from?: string | null
-          pgn?: string | null
-          result?: string | null
-          stake_usdc?: number
-          started_at?: string
-          status?: string
-          termination?: string | null
-          time_control?: string
-          time_seconds?: number
-          turn?: string | null
-          white_accuracy?: number | null
-          white_funded?: boolean
-          white_id?: string | null
-          white_rating_after?: number | null
-          white_rating_before?: number | null
-          white_time_ms?: number | null
-          white_username?: string | null
+          match_id?: string | null
+          resolution?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "games_black_id_fkey"
-            columns: ["black_id"]
+            foreignKeyName: "anticheat_flags_match_id_fkey"
+            columns: ["match_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "games_white_id_fkey"
-            columns: ["white_id"]
+            foreignKeyName: "anticheat_flags_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anticheat_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lichess_verifications: {
+        Row: {
+          attempts: number
+          challenge_code: string
+          created_at: string
+          id: string
+          lichess_username: string
+          method: string
+          status: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          challenge_code: string
+          created_at?: string
+          id?: string
+          lichess_username: string
+          method: string
+          status?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          challenge_code?: string
+          created_at?: string
+          id?: string
+          lichess_username?: string
+          method?: string
+          status?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lichess_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -182,127 +164,413 @@ export type Database = {
         }
         Relationships: []
       }
-      payments: {
+      matches: {
         Row: {
-          amount_usdc: number
+          anticheat_flag: string | null
+          black_accuracy: number | null
+          black_funded: boolean
+          black_rating_after: number | null
+          black_rating_before: number | null
+          black_time_ms: number | null
+          black_user_id: string | null
+          black_username: string | null
           created_at: string
-          from_address: string
-          game_id: string | null
+          ended_at: string | null
+          escrow_tx_hash: string | null
           id: string
+          increment_seconds: number
           invite_id: string | null
-          network: string
-          raw_payload: Json | null
+          last_move_at: string | null
+          live_fen: string | null
+          payout_tx_hash: string | null
+          pending_draw_from: string | null
+          pending_takeback_from: string | null
+          pgn: string | null
+          result: string | null
+          stake_usdc: number
+          started_at: string
           status: string
-          to_address: string
-          tx_id: string
-          user_id: string
-          verified_at: string | null
+          termination: string | null
+          time_control: string
+          time_seconds: number
+          tournament_id: string | null
+          turn: string | null
+          white_accuracy: number | null
+          white_funded: boolean
+          white_rating_after: number | null
+          white_rating_before: number | null
+          white_time_ms: number | null
+          white_user_id: string | null
+          white_username: string | null
         }
         Insert: {
-          amount_usdc: number
+          anticheat_flag?: string | null
+          black_accuracy?: number | null
+          black_funded?: boolean
+          black_rating_after?: number | null
+          black_rating_before?: number | null
+          black_time_ms?: number | null
+          black_user_id?: string | null
+          black_username?: string | null
           created_at?: string
-          from_address: string
-          game_id?: string | null
+          ended_at?: string | null
+          escrow_tx_hash?: string | null
           id?: string
+          increment_seconds?: number
           invite_id?: string | null
-          network: string
-          raw_payload?: Json | null
+          last_move_at?: string | null
+          live_fen?: string | null
+          payout_tx_hash?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
+          pgn?: string | null
+          result?: string | null
+          stake_usdc?: number
+          started_at?: string
           status?: string
-          to_address: string
-          tx_id: string
-          user_id: string
-          verified_at?: string | null
+          termination?: string | null
+          time_control?: string
+          time_seconds?: number
+          tournament_id?: string | null
+          turn?: string | null
+          white_accuracy?: number | null
+          white_funded?: boolean
+          white_rating_after?: number | null
+          white_rating_before?: number | null
+          white_time_ms?: number | null
+          white_user_id?: string | null
+          white_username?: string | null
         }
         Update: {
-          amount_usdc?: number
+          anticheat_flag?: string | null
+          black_accuracy?: number | null
+          black_funded?: boolean
+          black_rating_after?: number | null
+          black_rating_before?: number | null
+          black_time_ms?: number | null
+          black_user_id?: string | null
+          black_username?: string | null
           created_at?: string
-          from_address?: string
-          game_id?: string | null
+          ended_at?: string | null
+          escrow_tx_hash?: string | null
           id?: string
+          increment_seconds?: number
           invite_id?: string | null
-          network?: string
-          raw_payload?: Json | null
+          last_move_at?: string | null
+          live_fen?: string | null
+          payout_tx_hash?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
+          pgn?: string | null
+          result?: string | null
+          stake_usdc?: number
+          started_at?: string
           status?: string
-          to_address?: string
-          tx_id?: string
-          user_id?: string
-          verified_at?: string | null
+          termination?: string | null
+          time_control?: string
+          time_seconds?: number
+          tournament_id?: string | null
+          turn?: string | null
+          white_accuracy?: number | null
+          white_funded?: boolean
+          white_rating_after?: number | null
+          white_rating_before?: number | null
+          white_time_ms?: number | null
+          white_user_id?: string | null
+          white_username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_black_id_fkey"
+            columns: ["black_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "games_white_id_fkey"
+            columns: ["white_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
-      profiles: {
+      moves: {
         Row: {
-          avatar_url: string | null
+          clock_remaining_ms: number
           created_at: string
-          display_name: string | null
-          draws: number
-          id: string
-          losses: number
-          platform_rating: number
-          skill_tier: string
-          total_earnings_usdc: number
-          trust_score: number
-          updated_at: string
-          user_id: string
-          username: string | null
-          wallet_address: string | null
-          wallet_verified_at: string | null
-          wins: number
+          fen_after: string
+          id: number
+          is_best_move: boolean | null
+          match_id: string
+          ply: number
+          san: string
+          stockfish_eval: number | null
+          time_spent_ms: number
+          uci: string
         }
         Insert: {
-          avatar_url?: string | null
+          clock_remaining_ms: number
           created_at?: string
-          display_name?: string | null
-          draws?: number
-          id?: string
-          losses?: number
-          platform_rating?: number
-          skill_tier?: string
-          total_earnings_usdc?: number
-          trust_score?: number
-          updated_at?: string
-          user_id: string
-          username?: string | null
-          wallet_address?: string | null
-          wallet_verified_at?: string | null
-          wins?: number
+          fen_after: string
+          id?: number
+          is_best_move?: boolean | null
+          match_id: string
+          ply: number
+          san: string
+          stockfish_eval?: number | null
+          time_spent_ms: number
+          uci: string
         }
         Update: {
-          avatar_url?: string | null
+          clock_remaining_ms?: number
           created_at?: string
-          display_name?: string | null
-          draws?: number
-          id?: string
-          losses?: number
-          platform_rating?: number
-          skill_tier?: string
-          total_earnings_usdc?: number
-          trust_score?: number
-          updated_at?: string
-          user_id?: string
-          username?: string | null
-          wallet_address?: string | null
-          wallet_verified_at?: string | null
-          wins?: number
+          fen_after?: string
+          id?: number
+          is_best_move?: boolean | null
+          match_id?: string
+          ply?: number
+          san?: string
+          stockfish_eval?: number | null
+          time_spent_ms?: number
+          uci?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "moves_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          payload: Json | null
+          read_at: string | null
+          sent_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          read_at?: string | null
+          sent_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          read_at?: string | null
+          sent_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ratings: {
+        Row: {
+          created_at: string
+          delta: number
+          id: number
+          match_id: string
+          rating_after: number
+          rating_before: number
+          time_control: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: number
+          match_id: string
+          rating_after: number
+          rating_before: number
+          time_control: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: number
+          match_id?: string
+          rating_after?: number
+          rating_before?: number
+          time_control?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          chx_amount: number
+          created_at: string
+          daily_cap_date: string | null
+          distributed_at: string | null
+          id: string
+          match_id: string | null
+          source: string
+          status: string
+          tournament_id: string | null
+          user_id: string
+        }
+        Insert: {
+          chx_amount: number
+          created_at?: string
+          daily_cap_date?: string | null
+          distributed_at?: string | null
+          id?: string
+          match_id?: string | null
+          source: string
+          status?: string
+          tournament_id?: string | null
+          user_id: string
+        }
+        Update: {
+          chx_amount?: number
+          created_at?: string
+          daily_cap_date?: string | null
+          distributed_at?: string | null
+          id?: string
+          match_id?: string | null
+          source?: string
+          status?: string
+          tournament_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: unknown
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournament_participants: {
         Row: {
+          entry_tx_hash: string | null
           id: string
           joined_at: string
+          placement: number | null
+          prize_usdc: number | null
+          score: number
+          seed: number | null
           tournament_id: string
           user_id: string
         }
         Insert: {
+          entry_tx_hash?: string | null
           id?: string
           joined_at?: string
+          placement?: number | null
+          prize_usdc?: number | null
+          score?: number
+          seed?: number | null
           tournament_id: string
           user_id: string
         }
         Update: {
+          entry_tx_hash?: string | null
           id?: string
           joined_at?: string
+          placement?: number | null
+          prize_usdc?: number | null
+          score?: number
+          seed?: number | null
           tournament_id?: string
           user_id?: string
         }
@@ -319,6 +587,7 @@ export type Database = {
       tournaments: {
         Row: {
           created_at: string
+          created_by: string | null
           current_players: number
           entry_fee_usdc: number
           format: string
@@ -335,6 +604,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           current_players?: number
           entry_fee_usdc?: number
           format?: string
@@ -351,6 +621,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           current_players?: number
           entry_fee_usdc?: number
           format?: string
@@ -365,7 +636,188 @@ export type Database = {
           time_control?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          direction: string | null
+          from_address: string
+          game_id: string | null
+          id: string
+          invite_id: string | null
+          network: string
+          notes: string | null
+          on_chain_tx_hash: string | null
+          on_chain_tx_hash_old: string
+          raw_payload: Json | null
+          status: string
+          to_address: string
+          type: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          direction?: string | null
+          from_address: string
+          game_id?: string | null
+          id?: string
+          invite_id?: string | null
+          network: string
+          notes?: string | null
+          on_chain_tx_hash?: string | null
+          on_chain_tx_hash_old: string
+          raw_payload?: Json | null
+          status?: string
+          to_address: string
+          type?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          direction?: string | null
+          from_address?: string
+          game_id?: string | null
+          id?: string
+          invite_id?: string | null
+          network?: string
+          notes?: string | null
+          on_chain_tx_hash?: string | null
+          on_chain_tx_hash_old?: string
+          raw_payload?: Json | null
+          status?: string
+          to_address?: string
+          type?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
         Relationships: []
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          chx_balance: number
+          created_at: string
+          device_fingerprint: string[] | null
+          display_name: string | null
+          draws: number
+          email: string | null
+          id: string
+          is_banned: boolean
+          last_active_at: string | null
+          lichess_rating_blitz: number | null
+          lichess_rating_bullet: number | null
+          lichess_rating_rapid: number | null
+          lichess_username: string | null
+          lichess_verified_at: string | null
+          losses: number
+          passkey_credential: Json | null
+          platform_rating: number
+          referral_code: string | null
+          referred_by: string | null
+          risk_level: string
+          skill_tier: string
+          total_earnings_usdc: number
+          trust_score: number
+          updated_at: string
+          usdc_balance: number
+          user_id: string
+          username: string | null
+          wallet_address: string | null
+          wallet_verified_at: string | null
+          wins: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          chx_balance?: number
+          created_at?: string
+          device_fingerprint?: string[] | null
+          display_name?: string | null
+          draws?: number
+          email?: string | null
+          id?: string
+          is_banned?: boolean
+          last_active_at?: string | null
+          lichess_rating_blitz?: number | null
+          lichess_rating_bullet?: number | null
+          lichess_rating_rapid?: number | null
+          lichess_username?: string | null
+          lichess_verified_at?: string | null
+          losses?: number
+          passkey_credential?: Json | null
+          platform_rating?: number
+          referral_code?: string | null
+          referred_by?: string | null
+          risk_level?: string
+          skill_tier?: string
+          total_earnings_usdc?: number
+          trust_score?: number
+          updated_at?: string
+          usdc_balance?: number
+          user_id: string
+          username?: string | null
+          wallet_address?: string | null
+          wallet_verified_at?: string | null
+          wins?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          chx_balance?: number
+          created_at?: string
+          device_fingerprint?: string[] | null
+          display_name?: string | null
+          draws?: number
+          email?: string | null
+          id?: string
+          is_banned?: boolean
+          last_active_at?: string | null
+          lichess_rating_blitz?: number | null
+          lichess_rating_bullet?: number | null
+          lichess_rating_rapid?: number | null
+          lichess_username?: string | null
+          lichess_verified_at?: string | null
+          losses?: number
+          passkey_credential?: Json | null
+          platform_rating?: number
+          referral_code?: string | null
+          referred_by?: string | null
+          risk_level?: string
+          skill_tier?: string
+          total_earnings_usdc?: number
+          trust_score?: number
+          updated_at?: string
+          usdc_balance?: number
+          user_id?: string
+          username?: string | null
+          wallet_address?: string | null
+          wallet_verified_at?: string | null
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -375,7 +827,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      match_status_enum: "pending" | "active" | "completed" | "aborted"
+      risk_level_enum: "low" | "medium" | "high" | "banned"
+      skill_tier_enum: "Beginner" | "Intermediate" | "Advanced" | "Pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -502,6 +956,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      match_status_enum: ["pending", "active", "completed", "aborted"],
+      risk_level_enum: ["low", "medium", "high", "banned"],
+      skill_tier_enum: ["Beginner", "Intermediate", "Advanced", "Pro"],
+    },
   },
 } as const
