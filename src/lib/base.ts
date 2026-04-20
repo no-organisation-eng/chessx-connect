@@ -68,6 +68,59 @@ export async function signInWithBase() {
   return { address: data.wallet as string, userId: data.user_id as string };
 }
 
+// USDC contract addresses on Base
+const USDC_ADDRESS = {
+  'base-mainnet': '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+  'base-sepolia': '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
+} as const;
+const CHAIN_ID_HEX = {
+  'base-mainnet': '0x2105', // 8453
+  'base-sepolia': '0x14a34', // 84532
+} as const;
+
+type BaseNetwork = 'base-mainnet' | 'base-sepolia';
+
+/** ERC-20 transfer(address,uint256) selector + encoded args. */
+function encodeTransfer(to: string, amount: bigint): string {
+  const cleanTo = to.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const amountHex = amount.toString(16).padStart(64, '0');
+  return `0xa9059cbb${cleanTo}${amountHex}`;
+}
+
+/**
+ * Pay a USDC stake to the configured treasury via the user's Base wallet.
+ * Returns the on-chain transaction hash.
+ */
+export async function payStakeUsdc(opts: {
+  to: string;
+  amountUsdc: number;
+  network: BaseNetwork;
+}): Promise<{ txHash: `0x${string}`; from: string }> {
+  const provider = getSdk().getProvider();
+  const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
+  const from = accounts?.[0];
+  if (!from) throw new Error('No wallet account');
+
+  // Try to switch to the right chain (silent if already on it).
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: CHAIN_ID_HEX[opts.network] }],
+    });
+  } catch { /* user may decline; tx will likely still go via the requested network in Base Account */ }
+
+  const usdc = USDC_ADDRESS[opts.network];
+  const units = BigInt(Math.round(opts.amountUsdc * 1_000_000)); // USDC has 6 decimals
+  const data = encodeTransfer(opts.to, units);
+
+  const txHash = (await provider.request({
+    method: 'eth_sendTransaction',
+    params: [{ from, to: usdc, data, value: '0x0' }],
+  })) as `0x${string}`;
+
+  return { txHash, from };
+}
+
 /** Link a Base wallet to the currently signed-in user. */
 export async function linkBaseWallet() {
   const { address, message, signature } = await connectBaseWallet();
