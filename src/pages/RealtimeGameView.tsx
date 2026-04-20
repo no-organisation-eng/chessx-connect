@@ -9,6 +9,7 @@ import MoveHistory from '@/components/chess/MoveHistory';
 import GameStatus from '@/components/chess/GameStatus';
 import GameActions from '@/components/chess/GameActions';
 import PromotionDialog from '@/components/chess/PromotionDialog';
+import PayStakeButton from '@/components/chess/PayStakeButton';
 import AppLayout from '@/components/layout/AppLayout';
 import { buildInviteUrl, copyInvite } from '@/lib/invite';
 
@@ -178,9 +179,26 @@ const RealtimeGameView: React.FC = () => {
       <div className="flex flex-col w-full max-w-[640px] mx-auto gap-1.5">
         <GameStatus gameState={game.gameState} />
 
-        {game.row.status === 'waiting' && (
+        {game.row.status === 'waiting' && Number(game.row.stake_usdc) > 0 && game.myColor && (
+          <div className="flex flex-col gap-2 p-3 rounded-lg bg-card border border-border">
+            <div className="text-center text-[11px] text-accent font-display tracking-widest uppercase">
+              Waiting for stake payments
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center items-center">
+              <PayStakeButton
+                gameId={game.row.id}
+                stakeUsdc={Number(game.row.stake_usdc)}
+                alreadyFunded={game.myColor === 'w' ? game.row.white_funded : game.row.black_funded}
+              />
+              <div className="text-[10px] text-muted-foreground font-display tracking-widest uppercase">
+                Opponent: {(game.myColor === 'w' ? game.row.black_funded : game.row.white_funded) ? 'PAID ✓' : 'PENDING…'}
+              </div>
+            </div>
+          </div>
+        )}
+        {game.row.status === 'waiting' && Number(game.row.stake_usdc) === 0 && (
           <div className="text-center py-2 text-xs text-accent font-display tracking-widest uppercase">
-            Waiting for stake payments…
+            Waiting for opponent…
           </div>
         )}
 

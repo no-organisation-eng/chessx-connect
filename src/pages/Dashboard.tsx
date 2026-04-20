@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Trophy, Swords, Target, Flame, Wallet, Shield, ExternalLink } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trophy, Swords, Target, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import AppLayout from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
+import WalletLinkCard from '@/components/dashboard/WalletLinkCard';
 
 const tierColors: Record<string, string> = {
   Beginner: 'text-muted-foreground',
@@ -140,17 +140,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {u.wallet_address && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="font-display text-sm font-semibold tracking-wider text-foreground mb-3 flex items-center gap-2">
-              <Wallet size={16} /> WALLET
-            </h3>
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="font-mono">{u.wallet_address}</span>
-              <ExternalLink size={10} />
-            </div>
-          </div>
-        )}
+        <WalletLinkCard
+          walletAddress={u.wallet_address ?? null}
+          walletVerifiedAt={u.wallet_verified_at ?? null}
+        />
 
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
