@@ -48,14 +48,14 @@ const RealtimeGameView: React.FC = () => {
       }
 
       // Already has a game? Just open it.
-      if (invite.game_id) {
-        setGameId(invite.game_id);
+      if (invite.match_id) {
+        setGameId(invite.match_id);
         setResolving(false);
         return;
       }
 
       // Creator viewing their own open invite → wait for opponent
-      if (invite.creator_id === userId) {
+      if (invite.creator_user_id === userId) {
         setResolving(false);
         return;
       }
@@ -166,8 +166,8 @@ const RealtimeGameView: React.FC = () => {
     const s = totalSec % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
-  const myTimeMs = game.myColor === 'w' ? game.whiteTimeMs : game.blackTimeMs;
-  const oppTimeMs = game.myColor === 'w' ? game.blackTimeMs : game.whiteTimeMs;
+  const myTimeMs = game.myColor === 'w' ? game.row.white_time_ms : game.row.black_time_ms;
+  const oppTimeMs = game.myColor === 'w' ? game.row.black_time_ms : game.row.white_time_ms;
 
   return (
     <AppLayout>

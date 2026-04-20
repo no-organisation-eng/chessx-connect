@@ -64,8 +64,9 @@ const Tournaments = () => {
         <div className="space-y-3">
           {list.map((t) => {
             const st = statusStyles[t.status] ?? statusStyles.completed;
-            const spotsLeft = t.max_players - t.current_players;
-            const fillPct = (t.current_players / t.max_players) * 100;
+            const currentPlayers = 0; // Column removed in V1; needs aggregate query
+            const spotsLeft = (t.max_players || 0) - currentPlayers;
+            const fillPct = t.max_players ? (currentPlayers / t.max_players) * 100 : 0;
 
             return (
               <div key={t.id} className="bg-card border border-border rounded-xl p-4">
@@ -101,7 +102,7 @@ const Tournaments = () => {
 
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span className="flex items-center gap-1"><Users size={10} /> {t.current_players}/{t.max_players}</span>
+                    <span className="flex items-center gap-1"><Users size={10} /> {currentPlayers}/{t.max_players}</span>
                     {spotsLeft > 0 && t.status === 'registration' && (
                       <span className="text-primary">{spotsLeft} spots left</span>
                     )}

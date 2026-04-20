@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 
 export interface RealtimeGameRow {
   id: string;
-  white_id: string | null;
-  black_id: string | null;
+  white_user_id: string | null;
+  black_user_id: string | null;
   white_username: string | null;
   black_username: string | null;
   live_fen: string | null;
@@ -80,7 +80,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const myColor: 'w' | 'b' | null =
-    !row || !userId ? null : row.white_id === userId ? 'w' : row.black_id === userId ? 'b' : null;
+    !row || !userId ? null : row.white_user_id === userId ? 'w' : row.black_user_id === userId ? 'b' : null;
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
     setRow(r);
@@ -104,7 +104,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     let active = true;
     (async () => {
       const { data, error } = await supabase
-        .from('games')
+        .from('matches')
         .select('*')
         .eq('id', gameId)
         .maybeSingle();
@@ -127,7 +127,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
       .channel(`game:${gameId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${gameId}` },
         (payload) => applyRow(payload.new as unknown as RealtimeGameRow),
       )
       .subscribe();
@@ -190,7 +190,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
         }
       : baseUpdate;
 
-    const { error } = await supabase.from('games').update(update).eq('id', gameId);
+    const { error } = await supabase.from('matches').update(update).eq('id', gameId);
     if (error) {
       toast.error('Move failed: ' + error.message);
       game.undo();
@@ -258,7 +258,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   const resign = useCallback(async () => {
     if (!gameId || !myColor) return;
     const result = myColor === 'w' ? 'black' : 'white';
-    await supabase.from('games').update({
+    await supabase.from('matches').update({
       status: 'completed',
       result,
       termination: 'resign',
@@ -269,13 +269,13 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   const offerDraw = useCallback(async () => {
     if (!gameId || !myColor || !row || row.status !== 'active') return;
     if (row.pending_draw_from) return;
-    await supabase.from('games').update({ pending_draw_from: myColor }).eq('id', gameId);
+    await supabase.from('matches').update({ pending_draw_from: myColor }).eq('id', gameId);
     toast.success('Draw offer sent');
   }, [gameId, myColor, row]);
 
   const acceptDraw = useCallback(async () => {
     if (!gameId || !row?.pending_draw_from || row.pending_draw_from === myColor) return;
-    await supabase.from('games').update({
+    await supabase.from('matches').update({
       status: 'completed',
       result: 'draw',
       termination: 'agreement',
@@ -286,14 +286,14 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
 
   const declineDraw = useCallback(async () => {
     if (!gameId) return;
-    await supabase.from('games').update({ pending_draw_from: null }).eq('id', gameId);
+    await supabase.from('matches').update({ pending_draw_from: null }).eq('id', gameId);
   }, [gameId]);
 
   const offerTakeback = useCallback(async () => {
     if (!gameId || !myColor || !row || row.status !== 'active') return;
     if (row.pending_takeback_from) return;
     if (game.history().length === 0) return;
-    await supabase.from('games').update({ pending_takeback_from: myColor }).eq('id', gameId);
+    await supabase.from('matches').update({ pending_takeback_from: myColor }).eq('id', gameId);
     toast.success('Takeback request sent');
   }, [gameId, myColor, row, game]);
 
@@ -304,7 +304,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     const newFen = game.fen();
     const newPgn = game.pgn();
     const newTurn = game.turn() as 'w' | 'b';
-    await supabase.from('games').update({
+    await supabase.from('matches').update({
       live_fen: newFen,
       pgn: newPgn,
       turn: newTurn,
@@ -316,7 +316,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
 
   const declineTakeback = useCallback(async () => {
     if (!gameId) return;
-    await supabase.from('games').update({ pending_takeback_from: null }).eq('id', gameId);
+    await supabase.from('matches').update({ pending_takeback_from: null }).eq('id', gameId);
   }, [gameId]);
 
   const [now, setNow] = useState(() => Date.now());
@@ -345,7 +345,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     const myTime = myColor === 'w' ? whiteTimeMs : blackTimeMs;
     if (myTime > 0) return;
     const result = myColor === 'w' ? 'black' : 'white';
-    supabase.from('games').update({
+    supabase.from('matches').update({
       status: 'completed',
       result,
       termination: 'timeout',

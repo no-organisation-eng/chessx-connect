@@ -201,9 +201,9 @@ export function useChessGame() {
       if (!user) return;
 
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('users')
         .select('username, platform_rating')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       let result: 'white' | 'black' | 'draw' | null = null;
@@ -231,8 +231,8 @@ export function useChessGame() {
 
       if (!result) return;
 
-      const { error } = await supabase.from('games').insert({
-        white_id: user.id,
+      const { error } = await supabase.from('matches').insert({
+        white_user_id: user.id,
         white_username: profile?.username ?? 'You',
         black_username: aiEnabled ? 'ChessX AI' : 'Opponent',
         result,

@@ -33,9 +33,9 @@ const Dashboard = () => {
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
-        .eq('user_id', userId!)
+        .eq('id', userId!)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -47,9 +47,9 @@ const Dashboard = () => {
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('games')
+        .from('matches')
         .select('*')
-        .or(`white_id.eq.${userId},black_id.eq.${userId}`)
+        .or(`white_user_id.eq.${userId},black_user_id.eq.${userId}`)
         .order('started_at', { ascending: false })
         .limit(5);
       if (error) throw error;
@@ -162,7 +162,7 @@ const Dashboard = () => {
           {recentGames && recentGames.length > 0 ? (
             <div className="space-y-2">
               {recentGames.slice(0, 3).map((m) => {
-                const isWhite = m.white_id === userId;
+                const isWhite = m.white_user_id === userId;
                 const won = (m.result === 'white' && isWhite) || (m.result === 'black' && !isWhite);
                 const drew = m.result === 'draw';
                 const ratingDelta = isWhite
