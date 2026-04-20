@@ -24,6 +24,8 @@ export interface RealtimeGameRow {
   white_time_ms: number | null;
   black_time_ms: number | null;
   last_move_at: string | null;
+  pending_draw_from: 'w' | 'b' | null;
+  pending_takeback_from: 'w' | 'b' | null;
 }
 
 export interface RealtimeGameState {
