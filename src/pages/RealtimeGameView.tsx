@@ -184,6 +184,36 @@ const RealtimeGameView: React.FC = () => {
           </div>
         )}
 
+        {game.row.pending_draw_from && game.row.pending_draw_from !== game.myColor && game.row.status === 'active' && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-xs">
+            <span className="font-display tracking-widest uppercase text-accent">Opponent offers a draw</span>
+            <div className="flex gap-2">
+              <button onClick={game.acceptDraw} className="px-3 py-1 rounded bg-primary text-primary-foreground text-[10px] font-semibold tracking-wider uppercase hover:bg-primary/90">Accept</button>
+              <button onClick={game.declineDraw} className="px-3 py-1 rounded bg-secondary text-secondary-foreground text-[10px] font-semibold tracking-wider uppercase hover:bg-secondary/80">Decline</button>
+            </div>
+          </div>
+        )}
+        {game.row.pending_draw_from && game.row.pending_draw_from === game.myColor && game.row.status === 'active' && (
+          <div className="text-center py-1.5 text-[10px] text-muted-foreground font-display tracking-widest uppercase">
+            Draw offer pending…
+          </div>
+        )}
+
+        {game.row.pending_takeback_from && game.row.pending_takeback_from !== game.myColor && game.row.status === 'active' && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-xs">
+            <span className="font-display tracking-widest uppercase text-accent">Opponent requests takeback</span>
+            <div className="flex gap-2">
+              <button onClick={game.acceptTakeback} className="px-3 py-1 rounded bg-primary text-primary-foreground text-[10px] font-semibold tracking-wider uppercase hover:bg-primary/90">Allow</button>
+              <button onClick={game.declineTakeback} className="px-3 py-1 rounded bg-secondary text-secondary-foreground text-[10px] font-semibold tracking-wider uppercase hover:bg-secondary/80">Deny</button>
+            </div>
+          </div>
+        )}
+        {game.row.pending_takeback_from && game.row.pending_takeback_from === game.myColor && game.row.status === 'active' && (
+          <div className="text-center py-1.5 text-[10px] text-muted-foreground font-display tracking-widest uppercase">
+            Takeback request pending…
+          </div>
+        )}
+
         <PlayerBar
           name={opponentName ?? 'Opponent'}
           color={flipped ? 'w' : 'b'}
