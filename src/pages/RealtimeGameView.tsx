@@ -242,13 +242,13 @@ const RealtimeGameView: React.FC = () => {
 
         <GameActions
           onResign={game.resign}
-          onProposeDraw={() => { /* TODO: realtime draw offer */ }}
-          onProposeTakeback={() => { /* TODO: realtime takeback */ }}
+          onProposeDraw={game.offerDraw}
+          onProposeTakeback={game.offerTakeback}
           onReset={() => navigate('/play')}
           isGameOver={game.gameState.isGameOver || game.row.status === 'completed'}
-          canTakeback={false}
-          drawProposed={false}
-          takebackProposed={false}
+          canTakeback={game.gameState.moveHistory.length > 0}
+          drawProposed={game.row.pending_draw_from === game.myColor}
+          takebackProposed={game.row.pending_takeback_from === game.myColor}
         />
 
         <div className="flex items-center justify-between text-[10px] text-muted-foreground font-display tracking-widest uppercase px-1">
