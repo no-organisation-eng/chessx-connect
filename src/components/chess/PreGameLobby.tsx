@@ -6,6 +6,7 @@ import type { AIDifficulty } from '@/hooks/useChessAI';
 import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ThemePicker from './ThemePicker';
 
 interface PreGameLobbyProps {
   onStartGame: (timeControl: string, vsAI: boolean, difficulty: AIDifficulty) => void;
@@ -219,6 +220,8 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
               </div>
             ))}
           </div>
+
+          <ThemePicker />
 
           <button
             onClick={handlePlay}
