@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link2 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import ChessBoard from '@/components/chess/ChessBoard';
 import PlayerBar from '@/components/chess/PlayerBar';
 import MoveHistory from '@/components/chess/MoveHistory';
@@ -15,7 +14,10 @@ import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 const Index = () => {
   const { inviteCode } = useParams<{ inviteCode?: string }>();
-  if (inviteCode) return <RealtimeGameView />;
+  const [searchParams] = useSearchParams();
+  const matchId = searchParams.get('m');
+
+  if (inviteCode || matchId) return <RealtimeGameView matchId={matchId} />;
 
   const {
     gameState,

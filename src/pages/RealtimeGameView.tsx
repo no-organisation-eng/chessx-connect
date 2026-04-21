@@ -12,12 +12,16 @@ import PromotionDialog from '@/components/chess/PromotionDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import { buildInviteUrl, copyInvite } from '@/lib/invite';
 
-const RealtimeGameView: React.FC = () => {
-  const { inviteCode } = useParams<{ inviteCode: string }>();
+interface RealtimeGameViewProps {
+  matchId?: string | null;
+}
+
+const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
+  const { inviteCode } = useParams<{ inviteCode?: string }>();
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [gameId, setGameId] = useState<string | null>(null);
-  const [resolving, setResolving] = useState(true);
+  const [gameId, setGameId] = useState<string | null>(matchId ?? null);
+  const [resolving, setResolving] = useState(!matchId && !!inviteCode);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Get current user

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Swords, Bot, User, Link2 } from 'lucide-react';
+import { Clock, Swords, Bot, User, Link2, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { TIME_CONTROLS } from '@/hooks/useChessTimer';
 import type { AIDifficulty } from '@/hooks/useChessAI';
 import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PreGameLobbyProps {
   onStartGame: (timeControl: string, vsAI: boolean, difficulty: AIDifficulty) => void;
@@ -15,6 +18,13 @@ const TIME_CATEGORIES = {
   Unlimited: ['Unlimited'],
 };
 
+const STAKES = [
+  { value: 0, label: 'FREE', icon: '🆓' },
+  { value: 1, label: '$1 USDC', icon: '💰' },
+  { value: 5, label: '$5 USDC', icon: '🔥' },
+  { value: 10, label: '$10 USDC', icon: '🏆' },
+];
+
 const DIFFICULTIES: { value: AIDifficulty; label: string; desc: string }[] = [
   { value: 'easy', label: 'Easy', desc: '~800 ELO' },
   { value: 'medium', label: 'Medium', desc: '~1400 ELO' },
@@ -22,22 +32,76 @@ const DIFFICULTIES: { value: AIDifficulty; label: string; desc: string }[] = [
 ];
 
 const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
+  const navigate = useNavigate();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [vsAI, setVsAI] = useState(true);
   const [difficulty, setDifficulty] = useState<AIDifficulty>('medium');
+  const [stake, setStake] = useState(0);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (!searching) return;
-    const t = setTimeout(() => {
-      if (selectedTime) onStartGame(selectedTime, vsAI, difficulty);
-    }, vsAI ? 800 : 2000);
-    return () => clearTimeout(t);
-  }, [searching]);
+
+    if (vsAI) {
+      const t = setTimeout(() => {
+        if (selectedTime) onStartGame(selectedTime, vsAI, difficulty);
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+
+    // PvP Matchmaking logic
+    let interval: number;
+    const startMatchmaking = async () => {
+      try {
+        const cfg = TIME_CONTROLS[selectedTime!];
+        
+        // 1. Enter queue
+        const { data, error } = await supabase.functions.invoke('matchmaking', {
+          body: {
+            path: 'queue',
+            time_control: selectedTime,
+            stake_usdc: stake,
+            time_seconds: cfg.initialTime === Infinity ? 0 : cfg.initialTime,
+            increment_seconds: cfg.increment,
+          },
+        });
+
+        if (error) throw error;
+        if (data.status === 'matched') {
+          navigate(`/play?m=${data.match_id}`);
+          return;
+        }
+
+        // 2. Poll for status
+        interval = window.setInterval(async () => {
+          const { data: statusData } = await supabase.functions.invoke('matchmaking', {
+            body: { path: 'status' },
+          });
+          if (statusData?.match_id) {
+            clearInterval(interval);
+            navigate(`/play?m=${statusData.match_id}`);
+          }
+        }, 2000);
+      } catch (e: any) {
+        toast.error('Matchmaking failed', { description: e.message });
+        setSearching(false);
+      }
+    };
+
+    startMatchmaking();
+    return () => clearInterval(interval);
+  }, [searching, vsAI, selectedTime, stake, navigate, onStartGame, difficulty]);
 
   const handlePlay = () => {
     if (!selectedTime) return;
     setSearching(true);
+  };
+
+  const handleCancel = async () => {
+    setSearching(false);
+    if (!vsAI) {
+      await supabase.functions.invoke('matchmaking', { body: { path: 'cancel' } });
+    }
   };
 
   return (
@@ -48,10 +112,17 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
           <p className="font-display text-sm tracking-widest uppercase text-muted-foreground">
             {vsAI ? 'Setting up AI opponent...' : 'Finding opponent...'}
           </p>
-          <p className="text-xs text-muted-foreground">{selectedTime}</p>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs text-muted-foreground">{selectedTime}</p>
+            {stake > 0 && (
+              <span className="text-[10px] text-accent font-bold tracking-widest px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
+                STAKE: ${stake} USDC
+              </span>
+            )}
+          </div>
           <button
-            onClick={() => setSearching(false)}
-            className="text-xs text-destructive hover:underline mt-2"
+            onClick={handleCancel}
+            className="text-xs text-destructive hover:underline mt-2 font-display tracking-widest uppercase"
           >
             Cancel
           </button>
@@ -61,17 +132,14 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
           <div className="text-center">
             <Swords className="mx-auto mb-3 text-primary" size={32} />
             <h2 className="font-display text-xl tracking-wider text-foreground">NEW GAME</h2>
-            <p className="text-sm text-muted-foreground mt-1">Choose your time control</p>
+            <p className="text-sm text-muted-foreground mt-1">Stakeless or Compeitive Play</p>
           </div>
 
-          {/* Opponent toggle */}
           <div className="flex gap-2 w-full">
             <button
-              onClick={() => setVsAI(true)}
+              onClick={() => { setVsAI(true); setStake(0); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all border ${
-                vsAI
-                  ? 'bg-primary/15 text-primary border-primary/30'
-                  : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                vsAI ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
               }`}
             >
               <Bot size={16} /> vs AI
@@ -79,39 +147,55 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
             <button
               onClick={() => setVsAI(false)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all border ${
-                !vsAI
-                  ? 'bg-primary/15 text-primary border-primary/30'
-                  : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                !vsAI ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
               }`}
             >
               <User size={16} /> vs Human
             </button>
           </div>
 
-          {/* AI Difficulty */}
-          {vsAI && (
+          {!vsAI && (
             <div className="w-full space-y-2">
-              <span className="text-xs text-muted-foreground font-display tracking-widest uppercase">Difficulty</span>
-              <div className="grid grid-cols-3 gap-2">
-                {DIFFICULTIES.map((d) => (
+              <span className="text-[10px] text-muted-foreground font-display tracking-widest uppercase flex items-center gap-1.5">
+                <Wallet size={12} /> Choose Stake (USDC)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {STAKES.map((s) => (
                   <button
-                    key={d.value}
-                    onClick={() => setDifficulty(d.value)}
-                    className={`py-2 rounded-lg text-xs font-medium transition-all border ${
-                      difficulty === d.value
-                        ? 'bg-primary/15 text-primary border-primary/30'
-                        : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                    key={s.value}
+                    onClick={() => setStake(s.value)}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border flex flex-col items-center gap-1 ${
+                      stake === s.value ? 'bg-accent/10 text-accent border-accent/50' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
                     }`}
                   >
-                    <div>{d.label}</div>
-                    <div className="text-[10px] opacity-60">{d.desc}</div>
+                    <span className="text-base">{s.icon}</span>
+                    <span className="text-xs">{s.label}</span>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Time controls */}
+          {vsAI && (
+            <div className="w-full space-y-2">
+              <span className="text-[10px] text-muted-foreground font-display tracking-widest uppercase">Difficulty</span>
+              <div className="grid grid-cols-3 gap-2">
+                {DIFFICULTIES.map((d) => (
+                  <button
+                    key={d.value}
+                    onClick={() => setDifficulty(d.value)}
+                    className={`py-2 rounded-lg text-xs font-medium transition-all border ${
+                      difficulty === d.value ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    <div>{d.label}</div>
+                    <div className="text-[10px] opacity-60 font-normal">{d.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="w-full space-y-3">
             {Object.entries(TIME_CATEGORIES).map(([category, controls]) => (
               <div key={category} className="space-y-1.5">
@@ -125,9 +209,7 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
                       key={name}
                       onClick={() => setSelectedTime(name)}
                       className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
-                        selectedTime === name
-                          ? 'bg-primary/15 text-primary border-primary/30 neon-glow'
-                          : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/20'
+                        selectedTime === name ? 'bg-primary/15 text-primary border-primary/30 neon-glow' : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/20'
                       }`}
                     >
                       {name}
@@ -138,46 +220,13 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
             ))}
           </div>
 
-          {/* Play button */}
           <button
             onClick={handlePlay}
             disabled={!selectedTime}
-            className="w-full py-3.5 rounded-lg bg-primary text-primary-foreground font-display text-sm tracking-widest uppercase font-semibold hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all neon-glow"
+            className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display text-sm tracking-widest uppercase font-bold hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all neon-glow"
           >
-            PLAY
+            {stake > 0 ? `STAKE $${stake} & PLAY` : 'START SEARCH'}
           </button>
-
-          {!vsAI && (
-            <button
-              onClick={async () => {
-                if (!selectedTime) return;
-                try {
-                  const cfg = TIME_CONTROLS[selectedTime];
-                  const { supabase } = await import('@/integrations/supabase/client');
-                  const { data, error } = await supabase.functions.invoke('create-match-invite', {
-                    body: {
-                      time_control: selectedTime,
-                      time_seconds: cfg.initialTime === Infinity ? 0 : cfg.initialTime,
-                      increment_seconds: cfg.increment,
-                    },
-                  });
-                  if (error) throw error;
-                  if (!data?.ok) throw new Error(data?.error ?? 'Could not create invite');
-                  const url = buildInviteUrl(`/play/${data.invite.code}`);
-                  await copyInvite(url, 'Game invite');
-                } catch (e) {
-                  const { toast } = await import('sonner');
-                  toast.error('Could not create invite', {
-                    description: e instanceof Error ? e.message : 'Unknown error',
-                  });
-                }
-              }}
-              disabled={!selectedTime}
-              className="w-full -mt-3 py-2.5 rounded-lg bg-secondary text-foreground font-display text-xs tracking-widest uppercase font-medium hover:bg-secondary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 border border-border"
-            >
-              <Link2 size={14} /> CREATE INVITE LINK
-            </button>
-          )}
         </>
       )}
     </div>
