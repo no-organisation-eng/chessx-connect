@@ -23,7 +23,7 @@ const Leaderboard = () => {
     queryKey: ['leaderboard'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('platform_rating', { ascending: false })
         .limit(20);

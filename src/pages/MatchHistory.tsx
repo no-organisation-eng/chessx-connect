@@ -28,19 +28,19 @@ const MatchHistory = () => {
     queryKey: ['profile', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('username').eq('user_id', userId!).maybeSingle();
+      const { data } = await supabase.from('users').select('id, username').eq('user_id', userId!).maybeSingle();
       return data;
     },
   });
 
   const { data: matches, isLoading } = useQuery({
-    queryKey: ['matchHistory', userId],
-    enabled: !!userId,
+    queryKey: ['matchHistory', profile?.id],
+    enabled: !!profile?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('games')
+        .from('matches')
         .select('*')
-        .or(`white_id.eq.${userId},black_id.eq.${userId}`)
+        .or(`white_user_id.eq.${profile!.id},black_user_id.eq.${profile!.id}`)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
