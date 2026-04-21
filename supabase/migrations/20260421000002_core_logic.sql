@@ -4,6 +4,20 @@
 
 BEGIN;
 
+-- 0. Inject missing columns into users (formerly profiles)
+ALTER TABLE public.users 
+  ADD COLUMN IF NOT EXISTS usdc_balance NUMERIC(18,6) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS chx_balance NUMERIC(18,8) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS platform_rating INTEGER DEFAULT 1200,
+  ADD COLUMN IF NOT EXISTS skill_tier TEXT DEFAULT 'Beginner',
+  ADD COLUMN IF NOT EXISTS trust_score INTEGER DEFAULT 100,
+  ADD COLUMN IF NOT EXISTS total_earnings_usdc NUMERIC(18,6) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS risk_level TEXT DEFAULT 'low',
+  ADD COLUMN IF NOT EXISTS device_fingerprint TEXT[],
+  ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+
 -- 1. Matchmaking Queue
 CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -4,16 +4,56 @@
 
 BEGIN;
 
+-- 0. Inject missing columns into users (formerly profiles)
+ALTER TABLE public.users 
+  ADD COLUMN IF NOT EXISTS usdc_balance NUMERIC(18,6) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS chx_balance NUMERIC(18,8) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS platform_rating INTEGER DEFAULT 1200,
+  ADD COLUMN IF NOT EXISTS skill_tier TEXT DEFAULT 'Beginner',
+  ADD COLUMN IF NOT EXISTS trust_score INTEGER DEFAULT 100,
+  ADD COLUMN IF NOT EXISTS total_earnings_usdc NUMERIC(18,6) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS risk_level TEXT DEFAULT 'low',
+  ADD COLUMN IF NOT EXISTS device_fingerprint TEXT[],
+  ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+
 -- 1. COMPATIBILITY VIEWS
+CREATE TABLE IF NOT EXISTS public.anticheat_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id UUID REFERENCES public.matches(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  flag_type TEXT,
+  severity TEXT,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.lichess_verifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  lichess_username TEXT,
+  challenge_code TEXT,
+  status TEXT DEFAULT 'pending',
+  verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.rewards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  match_id UUID REFERENCES public.matches(id),
+  source TEXT,
+  chx_amount NUMERIC(18,8),
+  daily_cap_date DATE,
+  status TEXT DEFAULT 'pending',
+  distributed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Map new 'users' table back to 'profiles'
 CREATE OR REPLACE VIEW public.profiles AS
 SELECT 
-    id AS profile_id, -- Original id column
-    id AS user_id,    -- In V1 migration I renamed user_id to id? No, wait.
-    -- Let me check the actual structure one more time.
-    -- Old profiles had 'id' (random) and 'user_id' (auth ref).
-    -- My V1 migration just renamed profiles to users.
-    -- So 'id' is still the random one and 'user_id' is still the auth one.
     id,
     user_id,
     username,
@@ -30,6 +70,16 @@ SELECT
     created_at,
     updated_at
 FROM public.users;
+
+-- Rename columns in 'matches' if they are still using the old 'games' schema names
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='matches' AND column_name='white_id') THEN
+    ALTER TABLE public.matches RENAME COLUMN white_id TO white_user_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='matches' AND column_name='black_id') THEN
+    ALTER TABLE public.matches RENAME COLUMN black_id TO black_user_id;
+  END IF;
+END $$;
 
 -- Map new 'matches' table back to 'games'
 CREATE OR REPLACE VIEW public.games AS

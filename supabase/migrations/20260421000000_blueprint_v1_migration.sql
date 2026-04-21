@@ -196,4 +196,14 @@ CREATE TABLE IF NOT EXISTS public.tournament_participants (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.anticheat_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id UUID REFERENCES public.matches(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  flag_type TEXT,
+  severity TEXT,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 COMMIT;
