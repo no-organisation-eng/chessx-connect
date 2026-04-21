@@ -79,6 +79,54 @@ serve(async (req) => {
         });
       }
 
+      case 'start-round': {
+        // 1. Fetch tournament and ensure it is in registration or active state
+        const { data: tourney, error: tErr } = await supabaseClient
+          .from('tournaments')
+          .select('*, tournament_participants(user_id, username)')
+          .eq('id', tournament_id)
+          .single();
+
+        if (tErr || !tourney) throw new Error('Tournament not found');
+        
+        const participants = tourney.tournament_participants;
+        if (!participants || participants.length < 2) throw new Error('Not enough participants to start');
+
+        // 2. Simple Random Pairing logic
+        // Shuffle participants
+        const shuffled = [...participants].sort(() => Math.random() - 0.5);
+        const pairingMatches = [];
+
+        for (let i = 0; i < shuffled.length; i += 2) {
+          if (shuffled[i + 1]) {
+            pairingMatches.push({
+              tournament_id,
+              white_user_id: shuffled[i].user_id,
+              black_user_id: shuffled[i + 1].user_id,
+              status: 'active',
+              time_control: tourney.time_control || '10+5',
+            });
+          }
+        }
+
+        // 3. Insert Matches
+        const { error: matchErr } = await supabaseClient
+          .from('matches')
+          .insert(pairingMatches);
+
+        if (matchErr) throw matchErr;
+
+        // 4. Update Tournament Status
+        await supabaseClient
+          .from('tournaments')
+          .update({ status: 'active' })
+          .eq('id', tournament_id);
+
+        return new Response(JSON.stringify({ ok: true, matches_created: pairingMatches.length }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

@@ -1,10 +1,11 @@
 -- ============================================================
 -- ChessX Platform Blueprint v1.0.0 Migration
+-- Clean Implementation for Fresh Projects
 -- ============================================================
 
 BEGIN;
 
--- 1. ENUMS (Create new ones as needed)
+-- 1. ENUMS
 DO $$ BEGIN
     CREATE TYPE public.skill_tier_enum AS ENUM ('Beginner', 'Intermediate', 'Advanced', 'Pro');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -17,51 +18,90 @@ DO $$ BEGIN
     CREATE TYPE public.match_status_enum AS ENUM ('pending', 'active', 'completed', 'aborted');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- 2. REORGANIZE PROFILES -> USERS
--- Rename existing table to avoid conflict if necessary, but we'll modify it in place if possible
--- or rename it to users if that's preferred.
-ALTER TABLE IF EXISTS public.profiles RENAME TO users;
+-- 2. USERS TABLE (Idempotent for Fresh or Existing)
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER TABLE IF EXISTS public.profiles RENAME TO users;
+  END IF;
+END $$;
 
--- Add missing columns to users
-ALTER TABLE public.users 
-  ADD COLUMN IF NOT EXISTS email TEXT,
-  ADD COLUMN IF NOT EXISTS passkey_credential JSONB,
-  ADD COLUMN IF NOT EXISTS lichess_username TEXT,
-  ADD COLUMN IF NOT EXISTS lichess_verified_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS lichess_rating_bullet SMALLINT,
-  ADD COLUMN IF NOT EXISTS lichess_rating_blitz SMALLINT,
-  ADD COLUMN IF NOT EXISTS lichess_rating_rapid SMALLINT,
-  ADD COLUMN IF NOT EXISTS risk_level TEXT NOT NULL DEFAULT 'low',
-  ADD COLUMN IF NOT EXISTS chx_balance NUMERIC(18,8) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS usdc_balance NUMERIC(18,6) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS referral_code TEXT,
-  ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.users(id),
-  ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS device_fingerprint TEXT[],
-  ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE, -- Auth ref
+  username TEXT UNIQUE NOT NULL,
+  display_name TEXT,
+  avatar_url TEXT,
+  email TEXT UNIQUE,
+  wallet_address TEXT,
+  wallet_verified_at TIMESTAMPTZ,
+  platform_rating INTEGER DEFAULT 1200,
+  skill_tier TEXT DEFAULT 'Beginner',
+  trust_score INTEGER DEFAULT 100,
+  wins INTEGER DEFAULT 0,
+  losses INTEGER DEFAULT 0,
+  draws INTEGER DEFAULT 0,
+  total_earnings_usdc NUMERIC(18,6) DEFAULT 0,
+  usdc_balance NUMERIC(18,6) DEFAULT 0,
+  chx_balance NUMERIC(18,8) DEFAULT 0,
+  risk_level TEXT DEFAULT 'low',
+  is_banned BOOLEAN DEFAULT false,
+  lichess_username TEXT,
+  lichess_verified_at TIMESTAMPTZ,
+  lichess_rating_bullet SMALLINT,
+  lichess_rating_blitz SMALLINT,
+  lichess_rating_rapid SMALLINT,
+  referral_code TEXT UNIQUE,
+  referred_by UUID REFERENCES public.users(id),
+  device_fingerprint TEXT[],
+  last_active_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Add constraints and unique indexes
-ALTER TABLE public.users ADD CONSTRAINT users_username_unique UNIQUE (username);
-ALTER TABLE public.users ADD CONSTRAINT users_email_unique UNIQUE (email);
-ALTER TABLE public.users ADD CONSTRAINT users_referral_code_unique UNIQUE (referral_code);
+-- 3. MATCHES TABLE (Idempotent for Fresh or Existing)
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'games') THEN
+    ALTER TABLE IF EXISTS public.games RENAME TO matches;
+  END IF;
+END $$;
 
--- 3. REORGANIZE GAMES -> MATCHES
-ALTER TABLE IF EXISTS public.games RENAME TO matches;
+CREATE TABLE IF NOT EXISTS public.matches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  white_user_id UUID REFERENCES public.users(id),
+  black_user_id UUID REFERENCES public.users(id),
+  white_username TEXT,
+  black_username TEXT,
+  status TEXT DEFAULT 'pending',
+  result TEXT,
+  termination TEXT,
+  pgn TEXT,
+  time_control TEXT,
+  time_seconds INTEGER,
+  increment_seconds INTEGER,
+  stake_usdc NUMERIC(18,6) DEFAULT 0,
+  white_rating_before INTEGER,
+  white_rating_after INTEGER,
+  black_rating_before INTEGER,
+  black_rating_after INTEGER,
+  white_accuracy NUMERIC(5,2),
+  black_accuracy NUMERIC(5,2),
+  white_funded BOOLEAN DEFAULT false,
+  black_funded BOOLEAN DEFAULT false,
+  escrow_tx_hash TEXT,
+  payout_tx_hash TEXT,
+  anticheat_flag TEXT,
+  tournament_id UUID,
+  live_fen TEXT,
+  turn TEXT DEFAULT 'w',
+  white_time_ms INTEGER,
+  black_time_ms INTEGER,
+  last_move_at TIMESTAMPTZ,
+  started_at TIMESTAMPTZ,
+  ended_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Rename columns to match blueprint
-ALTER TABLE public.matches RENAME COLUMN white_id TO white_user_id;
-ALTER TABLE public.matches RENAME COLUMN black_id TO black_user_id;
-
--- Add missing columns to matches
-ALTER TABLE public.matches
-  ADD COLUMN IF NOT EXISTS escrow_tx_hash TEXT,
-  ADD COLUMN IF NOT EXISTS anticheat_flag TEXT,
-  ADD COLUMN IF NOT EXISTS tournament_id UUID,
-  ADD COLUMN IF NOT EXISTS payout_tx_hash TEXT;
-
--- 4. NEW TABLES
-
--- moves
+-- 4. INFRASTRUCTURE TABLES
 CREATE TABLE IF NOT EXISTS public.moves (
   id BIGSERIAL PRIMARY KEY,
   match_id UUID NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
@@ -76,10 +116,6 @@ CREATE TABLE IF NOT EXISTS public.moves (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_moves_match_id ON public.moves (match_id);
-CREATE INDEX IF NOT EXISTS idx_moves_match_ply ON public.moves (match_id, ply);
-
--- ratings history
 CREATE TABLE IF NOT EXISTS public.ratings (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -91,24 +127,24 @@ CREATE TABLE IF NOT EXISTS public.ratings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_ratings_user ON public.ratings (user_id);
-CREATE INDEX IF NOT EXISTS idx_ratings_match ON public.ratings (match_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+    ALTER TABLE IF EXISTS public.payments RENAME TO transactions;
+  END IF;
+END $$;
 
--- transactions (Transitioning from payments)
-ALTER TABLE IF EXISTS public.payments RENAME TO transactions;
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id),
+  amount NUMERIC(18,6),
+  currency TEXT DEFAULT 'USDC',
+  type TEXT,
+  direction TEXT,
+  on_chain_tx_hash TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-ALTER TABLE public.transactions
-  ADD COLUMN IF NOT EXISTS type TEXT,
-  ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'USDC',
-  ADD COLUMN IF NOT EXISTS direction TEXT,
-  ADD COLUMN IF NOT EXISTS on_chain_tx_hash TEXT,
-  ADD COLUMN IF NOT EXISTS notes TEXT;
-
--- Map old columns if needed
-ALTER TABLE public.transactions RENAME COLUMN amount_usdc TO amount;
-ALTER TABLE public.transactions RENAME COLUMN tx_id TO on_chain_tx_hash_old; -- Keep old mapping safe
-
--- sessions
 CREATE TABLE IF NOT EXISTS public.sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -119,52 +155,11 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- lichess_verifications
-CREATE TABLE IF NOT EXISTS public.lichess_verifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  lichess_username TEXT NOT NULL,
-  challenge_code TEXT NOT NULL,
-  method TEXT NOT NULL CHECK (method IN ('bio_code', 'game_challenge')),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'passed', 'failed')),
-  verified_at TIMESTAMPTZ,
-  attempts SMALLINT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- rewards
-CREATE TABLE IF NOT EXISTS public.rewards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  source TEXT NOT NULL CHECK (source IN ('match_win', 'tournament_win', 'referral', 'daily_bonus', 'streak')),
-  chx_amount NUMERIC(18,8) NOT NULL,
-  match_id UUID REFERENCES public.matches(id),
-  tournament_id UUID REFERENCES public.tournaments(id),
-  daily_cap_date DATE,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'distributed', 'cancelled')),
-  distributed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- anticheat_flags
-CREATE TABLE IF NOT EXISTS public.anticheat_flags (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  match_id UUID REFERENCES public.matches(id),
-  flag_type TEXT NOT NULL CHECK (flag_type IN ('engine_use', 'accuracy_spike', 'win_rate_anomaly', 'collusion', 'multi_account', 'reward_farming')),
-  severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-  details JSONB,
-  reviewed_by UUID REFERENCES public.users(id),
-  resolution TEXT CHECK (resolution IN ('dismissed', 'warned', 'banned')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- notifications
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('match_found', 'game_result', 'payout', 'tournament', 'reward', 'warning')),
-  channel TEXT NOT NULL CHECK (channel IN ('in_app', 'email', 'push')),
+  type TEXT NOT NULL,
+  channel TEXT NOT NULL,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   payload JSONB,
@@ -173,17 +168,32 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 5. REFINING TOURNAMENTS
-ALTER TABLE public.tournaments
-  ADD COLUMN IF NOT EXISTS entry_fee_usdc NUMERIC(18,6) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS prize_pool_usdc NUMERIC(18,6) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.users(id);
+-- 5. TOURNAMENTS
+CREATE TABLE IF NOT EXISTS public.tournaments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  format TEXT NOT NULL,
+  status TEXT DEFAULT 'registration',
+  entry_fee_usdc NUMERIC(18,6) NOT NULL DEFAULT 0,
+  prize_pool_usdc NUMERIC(18,6) NOT NULL DEFAULT 0,
+  max_players INTEGER,
+  min_rating INTEGER,
+  max_rating INTEGER,
+  time_control TEXT,
+  created_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-ALTER TABLE public.tournament_participants
-  ADD COLUMN IF NOT EXISTS seed INTEGER,
-  ADD COLUMN IF NOT EXISTS score NUMERIC(5,2) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS placement INTEGER,
-  ADD COLUMN IF NOT EXISTS prize_usdc NUMERIC(18,6),
-  ADD COLUMN IF NOT EXISTS entry_tx_hash TEXT;
+CREATE TABLE IF NOT EXISTS public.tournament_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tournament_id UUID NOT NULL REFERENCES public.tournaments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  score NUMERIC(5,2) DEFAULT 0,
+  seed INTEGER,
+  placement INTEGER,
+  prize_usdc NUMERIC(18,6),
+  entry_tx_hash TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 COMMIT;

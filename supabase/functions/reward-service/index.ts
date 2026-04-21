@@ -143,6 +143,17 @@ serve(async (req) => {
             payload: { match_id, amount: finalAmount, rating: newW }
           }
         });
+
+        // 6. Trigger On-Chain Settlement if matches have an' escrow
+        if (match.escrow_tx_hash) {
+          await supabaseClient.functions.invoke('wallet-service', {
+            body: {
+              action: 'resolveMatch',
+              match_id: match_id,
+              winner_id: isWinner ? userId : null
+            }
+          });
+        }
       }
       
       results.push({ userId, amount: finalAmount, status: 'distributed' });

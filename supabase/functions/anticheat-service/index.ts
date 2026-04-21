@@ -30,7 +30,29 @@ serve(async (req) => {
       });
     }
 
-    // 2. Legality Check
+    // 2. Engine Correlation Check (Accuracy)
+    const { data: moveData } = await supabaseClient
+      .from('moves')
+      .select('stockfish_eval, is_best_move')
+      .eq('match_id', match_id)
+      .order('ply', { ascending: false })
+      .limit(10);
+
+    if (moveData && moveData.length >= 5) {
+      const bestMoveCount = moveData.filter(m => m.is_best_move).length;
+      const bestMovePct = (bestMoveCount / moveData.length) * 100;
+
+      // If last 10 moves were 100% best engine moves, flag as engine use.
+      if (bestMovePct > 95) {
+        flags.push({
+          type: 'engine_use',
+          severity: 'critical',
+          details: { reason: 'Suspiciously high engine correlation', accuracy: bestMovePct }
+        });
+      }
+    }
+
+    // 3. Legality Check
     const chess = new Chess(fen_before);
     try {
       const move = chess.move(move_uci);

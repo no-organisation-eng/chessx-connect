@@ -35,10 +35,13 @@ const DIFFICULTIES: { value: AIDifficulty; label: string; desc: string }[] = [
 const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
   const navigate = useNavigate();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [vsAI, setVsAI] = useState(true);
+  const [gameMode, setGameMode] = useState<'ai' | 'matchmaking' | 'friend'>('ai');
   const [difficulty, setDifficulty] = useState<AIDifficulty>('medium');
   const [stake, setStake] = useState(0);
   const [searching, setSearching] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+
+  const vsAI = gameMode === 'ai';
 
   useEffect(() => {
     if (!searching) return;
@@ -93,14 +96,40 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
     return () => clearInterval(interval);
   }, [searching, vsAI, selectedTime, stake, navigate, onStartGame, difficulty]);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     if (!selectedTime) return;
-    setSearching(true);
+    
+    if (gameMode === 'friend') {
+      try {
+        const cfg = TIME_CONTROLS[selectedTime];
+        const { data, error } = await supabase.functions.invoke('create-match-invite', {
+          body: {
+            time_control: selectedTime,
+            time_seconds: cfg.initialTime === Infinity ? 0 : cfg.initialTime,
+            increment_seconds: cfg.increment,
+            stake_usdc: stake,
+            creator_color: 'random'
+          }
+        });
+        
+        if (error) throw error;
+        if (data.ok) {
+          const url = buildInviteUrl(`/play/${data.invite.code}`);
+          setInviteUrl(url);
+          toast.success('Invite link generated!');
+        }
+      } catch (e: any) {
+        toast.error('Could not create invite', { description: e.message });
+      }
+    } else {
+      setSearching(true);
+    }
   };
 
   const handleCancel = async () => {
     setSearching(false);
-    if (!vsAI) {
+    setInviteUrl(null);
+    if (gameMode === 'matchmaking') {
       await supabase.functions.invoke('matchmaking', { body: { path: 'cancel' } });
     }
   };
@@ -138,27 +167,35 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
 
           <div className="flex gap-2 w-full">
             <button
-              onClick={() => { setVsAI(true); setStake(0); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all border ${
-                vsAI ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+              onClick={() => { setGameMode('ai'); setStake(0); }}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-xs font-medium transition-all border ${
+                gameMode === 'ai' ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
               }`}
             >
-              <Bot size={16} /> vs AI
+              <Bot size={14} /> AI
             </button>
             <button
-              onClick={() => setVsAI(false)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all border ${
-                !vsAI ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+              onClick={() => setGameMode('matchmaking')}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-xs font-medium transition-all border ${
+                gameMode === 'matchmaking' ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
               }`}
             >
-              <User size={16} /> vs Human
+              <User size={14} /> HUMAN
+            </button>
+            <button
+              onClick={() => setGameMode('friend')}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-xs font-medium transition-all border ${
+                gameMode === 'friend' ? 'bg-primary/15 text-primary border-primary/30' : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+              }`}
+            >
+              <Link2 size={14} /> FRIEND
             </button>
           </div>
 
           {!vsAI && (
             <div className="w-full space-y-2">
               <span className="text-[10px] text-muted-foreground font-display tracking-widest uppercase flex items-center gap-1.5">
-                <Wallet size={12} /> Choose Stake (USDC)
+                <Wallet size={12} /> {gameMode === 'friend' ? 'Match Stake' : 'Choose Stake'} (USDC)
               </span>
               <div className="grid grid-cols-2 gap-2">
                 {STAKES.map((s) => (
@@ -223,13 +260,39 @@ const PreGameLobby: React.FC<PreGameLobbyProps> = ({ onStartGame }) => {
 
           <ThemePicker />
 
-          <button
-            onClick={handlePlay}
-            disabled={!selectedTime}
-            className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display text-sm tracking-widest uppercase font-bold hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all neon-glow"
-          >
-            {stake > 0 ? `STAKE $${stake} & PLAY` : 'START SEARCH'}
-          </button>
+          {inviteUrl ? (
+            <div className="w-full p-4 rounded-xl bg-accent/5 border border-accent/20 flex flex-col gap-3 animate-in slide-in-from-bottom-2">
+              <div className="space-y-1">
+                <p className="text-[10px] text-accent font-bold tracking-widest uppercase">Invite Link Ready</p>
+                <p className="text-xs text-muted-foreground">Ask your friend to open this link to join:</p>
+              </div>
+              <div className="p-3 bg-background border border-border rounded-lg text-[10px] font-mono break-all text-foreground">
+                {inviteUrl}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => copyInvite(inviteUrl)}
+                  className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-display text-[10px] tracking-widest uppercase font-bold hover:bg-primary/90"
+                >
+                  Copy Link
+                </button>
+                <button
+                  onClick={() => setInviteUrl(null)}
+                  className="px-4 py-3 rounded-lg bg-secondary text-muted-foreground font-display text-[10px] tracking-widest uppercase hover:text-foreground"
+                >
+                  New
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={handlePlay}
+              disabled={!selectedTime}
+              className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display text-sm tracking-widest uppercase font-bold hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all neon-glow"
+            >
+              {gameMode === 'friend' ? 'CREATE INVITE' : (stake > 0 ? `STAKE $${stake} & PLAY` : 'START SEARCH')}
+            </button>
+          )}
         </>
       )}
     </div>

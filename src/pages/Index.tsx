@@ -119,15 +119,6 @@ const Index = () => {
                 >
                   <Palette size={11} /> {BOARD_THEMES[boardTheme].name.toUpperCase()}
                 </button>
-                {!aiEnabled && !gameState.isGameOver && (
-                  <button
-                    onClick={() => copyInvite(buildInviteUrl(`/play/${generateInviteCode()}?tc=${encodeURIComponent(timeControlName)}`), 'Game invite')}
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                    title="Copy invite link"
-                  >
-                    <Link2 size={11} /> INVITE
-                  </button>
-                )}
               </div>
             </div>
           </div>
