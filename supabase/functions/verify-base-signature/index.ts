@@ -57,9 +57,9 @@ Deno.serve(async (req) => {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Not authenticated' }, 401);
       const token = authHeader.slice(7);
-      const { data: claims, error: cErr } = await admin.auth.getClaims(token);
-      if (cErr || !claims?.claims?.sub) return json({ error: 'Invalid session' }, 401);
-      const userId = claims.claims.sub as string;
+      const { data: userData, error: cErr } = await admin.auth.getUser(token);
+      if (cErr || !userData?.user?.id) return json({ error: 'Invalid session' }, 401);
+      const userId = userData.user.id;
 
       // Ensure no other user has this wallet
       const { data: existing } = await admin
