@@ -94,7 +94,7 @@ const RealtimeGameView: React.FC = () => {
     return () => { supabase.removeChannel(channel); };
   }, [inviteCode, gameId]);
 
-  const game = useRealtimeGame(gameId, userId);
+  const game = useRealtimeGame(gameId);
 
   if (resolving) {
     return (
@@ -166,8 +166,8 @@ const RealtimeGameView: React.FC = () => {
     const s = totalSec % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
-  const myTimeMs = game.myColor === 'w' ? game.row.white_time_ms : game.row.black_time_ms;
-  const oppTimeMs = game.myColor === 'w' ? game.row.black_time_ms : game.row.white_time_ms;
+  const myTimeMs = game.myColor === 'w' ? game.whiteTimeMs : game.blackTimeMs;
+  const oppTimeMs = game.myColor === 'w' ? game.blackTimeMs : game.whiteTimeMs;
 
   return (
     <AppLayout>
@@ -178,7 +178,7 @@ const RealtimeGameView: React.FC = () => {
       <div className="flex flex-col w-full max-w-[640px] mx-auto gap-1.5">
         <GameStatus gameState={game.gameState} />
 
-        {game.row.status === 'waiting' && (
+        {game.row.status === 'pending' && (
           <div className="text-center py-2 text-xs text-accent font-display tracking-widest uppercase">
             Waiting for stake payments…
           </div>

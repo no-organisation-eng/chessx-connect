@@ -12,6 +12,182 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          user_id: string
+          username: string | null
+          display_name: string | null
+          avatar_url: string | null
+          platform_rating: number
+          skill_tier: string
+          trust_score: number
+          wallet_address: string | null
+          total_earnings_usdc: number
+          wins: number
+          losses: number
+          draws: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          username?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          platform_rating?: number
+          skill_tier?: string
+          trust_score?: number
+          wallet_address?: string | null
+          total_earnings_usdc?: number
+          wins?: number
+          losses?: number
+          draws?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          username?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          platform_rating?: number
+          skill_tier?: string
+          trust_score?: number
+          wallet_address?: string | null
+          total_earnings_usdc?: number
+          wins?: number
+          losses?: number
+          draws?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      games: {
+        Row: {
+          id: string
+          white_id: string | null
+          black_id: string | null
+          white_username: string | null
+          black_username: string | null
+          result: string | null
+          termination: string | null
+          pgn: string | null
+          time_control: string
+          time_seconds: number
+          increment_seconds: number
+          stake_usdc: number
+          white_rating_before: number | null
+          white_rating_after: number | null
+          black_rating_before: number | null
+          black_rating_after: number | null
+          white_accuracy: number | null
+          black_accuracy: number | null
+          started_at: string | null
+          ended_at: string | null
+          created_at: string
+          live_fen: string | null
+          turn: string | null
+          white_time_ms: number | null
+          black_time_ms: number | null
+          last_move_at: string | null
+          pending_draw_from: string | null
+          pending_takeback_from: string | null
+          white_funded: boolean
+          black_funded: boolean
+        }
+        Insert: {
+          id?: string
+          white_id?: string | null
+          black_id?: string | null
+          white_username?: string | null
+          black_username?: string | null
+          result?: string | null
+          termination?: string | null
+          pgn?: string | null
+          time_control: string
+          time_seconds: number
+          increment_seconds?: number
+          stake_usdc?: number
+          white_rating_before?: number | null
+          white_rating_after?: number | null
+          black_rating_before?: number | null
+          black_rating_after?: number | null
+          white_accuracy?: number | null
+          black_accuracy?: number | null
+          started_at?: string | null
+          ended_at?: string | null
+          created_at?: string
+          live_fen?: string | null
+          turn?: string | null
+          white_time_ms?: number | null
+          black_time_ms?: number | null
+          last_move_at?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
+          white_funded?: boolean
+          black_funded?: boolean
+        }
+        Update: {
+          id?: string
+          white_id?: string | null
+          black_id?: string | null
+          white_username?: string | null
+          black_username?: string | null
+          result?: string | null
+          termination?: string | null
+          pgn?: string | null
+          time_control?: string
+          time_seconds?: number
+          increment_seconds?: number
+          stake_usdc?: number
+          white_rating_before?: number | null
+          white_rating_after?: number | null
+          black_rating_before?: number | null
+          black_rating_after?: number | null
+          white_accuracy?: number | null
+          black_accuracy?: number | null
+          started_at?: string | null
+          ended_at?: string | null
+          created_at?: string
+          live_fen?: string | null
+          turn?: string | null
+          white_time_ms?: number | null
+          black_time_ms?: number | null
+          last_move_at?: string | null
+          pending_draw_from?: string | null
+          pending_takeback_from?: string | null
+          white_funded?: boolean
+          black_funded?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_white_id_fkey"
+            columns: ["white_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "games_black_id_fkey"
+            columns: ["black_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          }
+        ]
+      }
       users: {
         Row: {
           id: string

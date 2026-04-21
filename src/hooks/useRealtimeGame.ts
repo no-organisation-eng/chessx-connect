@@ -5,13 +5,13 @@ import { toast } from 'sonner';
 
 export interface RealtimeGameRow {
   id: string;
-  white_user_id: string | null;
-  black_user_id: string | null;
+  white_id: string | null;
+  black_id: string | null;
   white_username: string | null;
   black_username: string | null;
   live_fen: string | null;
   turn: 'w' | 'b' | null;
-  status: 'waiting' | 'active' | 'completed' | 'aborted';
+  status: 'pending' | 'active' | 'completed' | 'aborted';
   pgn: string | null;
   result: string | null;
   termination: string | null;
@@ -69,7 +69,8 @@ function deriveFromChess(g: Chess): RealtimeGameState {
   };
 }
 
-export function useRealtimeGame(gameId: string | null, userId: string | null) {
+export function useRealtimeGame(gameId: string | null) {
+  const [user, setUser] = useState<any>(null);
   const [game] = useState(() => new Chess());
   const [row, setRow] = useState<RealtimeGameRow | null>(null);
   const [gameState, setGameState] = useState<RealtimeGameState>(() => deriveFromChess(game));
@@ -79,8 +80,12 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
   const myColor: 'w' | 'b' | null =
-    !row || !userId ? null : row.white_user_id === userId ? 'w' : row.black_user_id === userId ? 'b' : null;
+    !row || !user ? null : row.white_id === user.id ? 'w' : row.black_id === user.id ? 'b' : null;
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
     setRow(r);
@@ -98,13 +103,12 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     setGameState(deriveFromChess(game));
   }, [game]);
 
-  // Initial load
   useEffect(() => {
     if (!gameId) return;
     let active = true;
     (async () => {
       const { data, error } = await supabase
-        .from('matches')
+        .from('games')
         .select('*')
         .eq('id', gameId)
         .maybeSingle();
@@ -120,14 +124,13 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
     return () => { active = false; };
   }, [gameId, applyRow]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase
       .channel(`game:${gameId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${gameId}` },
+        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
         (payload) => applyRow(payload.new as unknown as RealtimeGameRow),
       )
       .subscribe();
@@ -152,8 +155,6 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
       result = 'draw'; termination = 'agreement';
     }
 
-    // Compute clock: subtract elapsed since last_move_at from the side that just moved,
-    // then add the increment.
     const moverColor = move.color as 'w' | 'b';
     const now = Date.now();
     const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
@@ -190,7 +191,7 @@ export function useRealtimeGame(gameId: string | null, userId: string | null) {
         }
       : baseUpdate;
 
-    const { error } = await supabase.from('matches').update(update).eq('id', gameId);
+    const { error } = await supabase.from('games').update(update).eq('id', gameId);
     if (error) {
       toast.error('Move failed: ' + error.message);
       game.undo();

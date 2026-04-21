@@ -28,7 +28,7 @@ const MatchHistory = () => {
     queryKey: ['profile', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data } = await supabase.from('users').select('username').eq('id', userId!).maybeSingle();
+      const { data } = await supabase.from('profiles').select('username').eq('user_id', userId!).maybeSingle();
       return data;
     },
   });
@@ -38,10 +38,10 @@ const MatchHistory = () => {
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('matches')
+        .from('games')
         .select('*')
-        .or(`white_user_id.eq.${userId},black_user_id.eq.${userId}`)
-        .order('started_at', { ascending: false })
+        .or(`white_id.eq.${userId},black_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       return data ?? [];
@@ -77,7 +77,7 @@ const MatchHistory = () => {
 
         <div className="space-y-3">
           {games.map((m) => {
-            const isWhite = m.white_user_id === userId;
+            const isWhite = m.white_id === userId;
             const opponent = isWhite ? m.black_username : m.white_username;
             const won = (m.result === 'white' && isWhite) || (m.result === 'black' && !isWhite);
             const drew = m.result === 'draw';
