@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Trophy, Swords, History, Award, LogOut } from 'lucide-react';
 import chessxLogo from '@/assets/chessx-logo.jpg';
+import NotificationsDropdown from './NotificationsDropdown';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,17 +26,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
           <img src={chessxLogo} alt="ChessX" className="h-8 object-contain" />
         </div>
-        <button
-          onClick={async () => {
-            const { supabase } = await import('@/integrations/supabase/client');
-            await supabase.auth.signOut();
-            navigate('/auth');
-          }}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          title="Sign out"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationsDropdown />
+          <button
+            onClick={async () => {
+              const { supabase } = await import('@/integrations/supabase/client');
+              await supabase.auth.signOut();
+              navigate('/auth');
+            }}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-secondary/50"
+            title="Sign out"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 pb-20 max-w-2xl mx-auto w-full">

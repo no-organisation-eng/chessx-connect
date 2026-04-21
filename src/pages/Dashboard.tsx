@@ -29,34 +29,71 @@ const Dashboard = () => {
 
   const userId = session?.user?.id;
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', userId],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
-        .eq('user_id', userId!)
+        .eq('id', userId!)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
   });
 
-  const { data: recentGames } = useQuery({
+  const { data: recentGames, refetch: refetchGames } = useQuery({
     queryKey: ['recentGames', userId],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('games')
+        .from('matches')
         .select('*')
-        .or(`white_id.eq.${userId},black_id.eq.${userId}`)
+        .or(`white_user_id.eq.${userId},black_user_id.eq.${userId}`)
         .order('created_at', { ascending: false })
         .limit(5);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(m => ({
+        ...m,
+        white_id: m.white_user_id, // Compatibility map for UI
+        black_id: m.black_user_id
+      }));
     },
   });
+
+  // Real-time subscriptions
+  React.useEffect(() => {
+    if (!userId) return;
+
+    const profileSubscription = supabase
+      .channel('profile-updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+        () => refetchProfile()
+      )
+      .subscribe();
+
+    const gamesSubscription = supabase
+      .channel('game-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'matches' },
+        () => refetchGames()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'matches' },
+        () => refetchGames()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileSubscription);
+      supabase.removeChannel(gamesSubscription);
+    };
+  }, [userId, refetchProfile, refetchGames]);
 
   if (profileLoading) {
     return (

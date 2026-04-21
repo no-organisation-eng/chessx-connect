@@ -21,8 +21,20 @@ const formatLabels: Record<string, string> = {
   double_elim: 'Double Elim',
 };
 
+import { toast } from 'sonner';
+
 const Tournaments = () => {
-  const { data: tournamentList, isLoading } = useQuery({
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
+
+  const userId = session?.user?.id;
+
+  const { data: tournamentList, isLoading, refetch } = useQuery({
     queryKey: ['tournaments'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +45,26 @@ const Tournaments = () => {
       return data ?? [];
     },
   });
+
+  const joinTournament = async (id: string) => {
+    if (!userId) {
+      toast.error('Please log in to join tournaments');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tournament-service', {
+        body: { action: 'join', tournament_id: id, user_id: userId }
+      });
+
+      if (error || data?.error) throw new Error(data?.error || error.message);
+      
+      toast.success('Successfully joined tournament!');
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -126,6 +158,7 @@ const Tournaments = () => {
                     <Button
                       className="flex-1 font-display text-xs tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
                       size="sm"
+                      onClick={() => joinTournament(t.id)}
                     >
                       {Number(t.entry_fee_usdc) > 0 ? `ENTER — $${t.entry_fee_usdc}` : 'ENTER FREE'}
                     </Button>

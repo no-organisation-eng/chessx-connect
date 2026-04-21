@@ -43,6 +43,49 @@ serve(async (req) => {
     const winnerId = match.result === 'white' ? match.white_user_id : (match.result === 'black' ? match.black_user_id : null);
     const users = [match.white_user_id, match.black_user_id];
     
+    // 3. Elo Calculation
+    const { data: wProfile } = await supabaseClient.from('users').select('platform_rating').eq('id', match.white_user_id).single();
+    const { data: bProfile } = await supabaseClient.from('users').select('platform_rating').eq('id', match.black_user_id).single();
+    
+    const rW = Number(wProfile?.platform_rating ?? 1200);
+    const rB = Number(bProfile?.platform_rating ?? 1200);
+    
+    const getExpected = (rA: number, rB: number) => 1 / (1 + Math.pow(10, (rB - rA) / 400));
+    const expW = getExpected(rW, rB);
+    const expB = getExpected(rB, rW);
+    
+    const K = 32;
+    const scoreW = match.result === 'white' ? 1 : (match.result === 'black' ? 0 : 0.5);
+    const scoreB = 1 - scoreW;
+    
+    const newW = Math.round(rW + K * (scoreW - expW));
+    const newB = Math.round(rB + K * (scoreB - expB));
+    
+    const getTier = (r: number) => {
+      if (r < 1200) return 'Beginner';
+      if (r < 1600) return 'Intermediate';
+      if (r < 2000) return 'Advanced';
+      return 'Pro';
+    };
+
+    // 4. Update Match Ratings
+    await supabaseClient.from('matches').update({
+      white_rating_before: rW,
+      white_rating_after: newW,
+      black_rating_before: rB,
+      black_rating_after: newB
+    }).eq('id', match_id);
+
+    // 5. Update User Profiles
+    await supabaseClient.from('users').update({ platform_rating: newW, skill_tier: getTier(newW) }).eq('id', match.white_user_id);
+    await supabaseClient.from('users').update({ platform_rating: newB, skill_tier: getTier(newB) }).eq('id', match.black_user_id);
+
+    // 6. Record Ratings History
+    await supabaseClient.from('ratings').insert([
+      { user_id: match.white_user_id, match_id: match_id, time_control: match.time_control, rating_before: rW, rating_after: newW, delta: newW - rW },
+      { user_id: match.black_user_id, match_id: match_id, time_control: match.time_control, rating_before: rB, rating_after: newB, delta: newB - rB }
+    ]);
+
     const results = [];
 
     for (const userId of users) {
@@ -85,6 +128,20 @@ serve(async (req) => {
         await supabaseClient.rpc('increment_chx_balance', { 
           target_user_id: userId, 
           amount: finalAmount 
+        });
+
+        // 5. Notify User
+        const ratingDelta = userId === match.white_user_id ? (newW - rW) : (newB - rB);
+        const ratingSymbol = ratingDelta >= 0 ? '+' : '';
+        
+        await supabaseClient.functions.invoke('notifications-service', {
+          body: {
+            user_id: userId,
+            type: 'reward_received',
+            title: isWinner ? 'Victory!' : 'Match Completed',
+            body: `You earned ${finalAmount} CHX. Rating: ${newW} (${ratingSymbol}${ratingDelta})`,
+            payload: { match_id, amount: finalAmount, rating: newW }
+          }
         });
       }
       
