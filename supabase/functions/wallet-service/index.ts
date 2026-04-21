@@ -96,7 +96,7 @@ serve(async (req) => {
         if (winnerId) {
           // Add to winner's balance
           const { data: winProfile } = await supabase.from('users').select('usdc_balance').eq('id', winnerId).single()
-          await supabase.from('users').update({ usdc_balance: Number(winProfile.usdc_balance) + totalStake }).eq('id', winnerId)
+          await supabase.from('users').update({ usdc_balance: Number(winProfile?.usdc_balance ?? 0) + totalStake }).eq('id', winnerId)
           
           await supabase.from('transactions').insert({
             user_id: winnerId,
@@ -125,7 +125,7 @@ serve(async (req) => {
         })
     }
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'unknown' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })

@@ -52,14 +52,14 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
       }
 
       // Already has a game? Just open it.
-      if (invite.match_id) {
-        setGameId(invite.match_id);
+      if (invite.game_id) {
+        setGameId(invite.game_id);
         setResolving(false);
         return;
       }
 
       // Creator viewing their own open invite → wait for opponent
-      if (invite.creator_user_id === userId) {
+      if (invite.creator_id === userId) {
         setResolving(false);
         return;
       }
