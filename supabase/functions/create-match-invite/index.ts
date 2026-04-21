@@ -36,9 +36,9 @@ Deno.serve(async (req) => {
     });
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: claims, error: cErr } = await userClient.auth.getClaims(token);
-    if (cErr || !claims?.claims?.sub) return json({ error: 'Invalid session' }, 401);
-    const userId = claims.claims.sub as string;
+    const { data: userData, error: cErr } = await userClient.auth.getUser(token);
+    if (cErr || !userData?.user?.id) return json({ error: 'Invalid session' }, 401);
+    const userId = userData.user.id;
 
     const body = (await req.json()) as Body;
     if (!body.time_control || !body.time_seconds) {
