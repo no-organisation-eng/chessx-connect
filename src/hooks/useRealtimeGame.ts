@@ -196,6 +196,9 @@ export function useRealtimeGame(gameId: string | null) {
       toast.error('Move failed: ' + error.message);
       game.undo();
       setGameState(deriveFromChess(game));
+    } else if (isOver || flagged) {
+      // Trigger reward distribution
+      supabase.functions.invoke('reward-service', { body: { match_id: gameId } });
     }
   }, [game, gameId, row]);
 

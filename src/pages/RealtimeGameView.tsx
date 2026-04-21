@@ -11,6 +11,7 @@ import GameActions from '@/components/chess/GameActions';
 import PromotionDialog from '@/components/chess/PromotionDialog';
 import AppLayout from '@/components/layout/AppLayout';
 import { buildInviteUrl, copyInvite } from '@/lib/invite';
+import PayStakeButton from '@/components/chess/PayStakeButton';
 
 interface RealtimeGameViewProps {
   matchId?: string | null;
@@ -183,8 +184,30 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
         <GameStatus gameState={game.gameState} />
 
         {game.row.status === 'pending' && (
-          <div className="text-center py-2 text-xs text-accent font-display tracking-widest uppercase">
-            Waiting for stake payments…
+          <div className="flex flex-col items-center gap-4 py-8 bg-accent/5 border border-accent/20 rounded-xl animate-in fade-in zoom-in duration-500">
+            <div className="flex flex-col items-center gap-1.5 text-center px-4">
+              <h3 className="font-display text-sm tracking-widest uppercase text-accent font-bold">Staked Match Required</h3>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Stake: ${game.row.stake_usdc} USDC</p>
+            </div>
+            
+            <div className="flex flex-col items-center gap-3">
+              <PayStakeButton 
+                gameId={gameId!} 
+                stakeUsdc={game.row.stake_usdc} 
+                alreadyFunded={game.myColor === 'w' ? game.row.white_funded : game.row.black_funded} 
+              />
+              
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest">
+                  Opponent Status: {((game.myColor === 'w' ? game.row.black_funded : game.row.white_funded) ? 'FUNDED ✓' : 'WAITING...')}
+                </span>
+                {!(game.myColor === 'w' ? game.row.white_funded : game.row.black_funded) && (
+                  <span className="text-[9px] text-accent/60 uppercase tracking-widest animate-pulse">
+                    Please pay stake to begin
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
