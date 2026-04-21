@@ -1,4 +1,4 @@
-import { Link2 } from 'lucide-react';
+import { Link2, Palette } from 'lucide-react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import ChessBoard from '@/components/chess/ChessBoard';
 import PlayerBar from '@/components/chess/PlayerBar';
@@ -10,6 +10,8 @@ import PreGameLobby from '@/components/chess/PreGameLobby';
 import AppLayout from '@/components/layout/AppLayout';
 import RealtimeGameView from './RealtimeGameView';
 import { useChessGameContext } from '@/contexts/ChessGameContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { BOARD_THEMES } from '@/lib/boardThemes';
 import { buildInviteUrl, copyInvite, generateInviteCode } from '@/lib/invite';
 
 const Index = () => {
@@ -39,6 +41,13 @@ const Index = () => {
     gameStarted,
     startGame,
   } = useChessGameContext();
+
+  const { boardTheme, setBoardTheme } = useTheme();
+  const cycleBoardTheme = () => {
+    const ids = Object.keys(BOARD_THEMES) as (keyof typeof BOARD_THEMES)[];
+    const idx = ids.indexOf(boardTheme);
+    setBoardTheme(ids[(idx + 1) % ids.length]);
+  };
 
   return (
     <AppLayout>
@@ -103,6 +112,13 @@ const Index = () => {
                     AI THINKING
                   </span>
                 )}
+                <button
+                  onClick={cycleBoardTheme}
+                  className="flex items-center gap-1 hover:text-primary transition-colors"
+                  title={`Board: ${BOARD_THEMES[boardTheme].name} (click to cycle)`}
+                >
+                  <Palette size={11} /> {BOARD_THEMES[boardTheme].name.toUpperCase()}
+                </button>
                 {!aiEnabled && !gameState.isGameOver && (
                   <button
                     onClick={() => copyInvite(buildInviteUrl(`/play/${generateInviteCode()}?tc=${encodeURIComponent(timeControlName)}`), 'Game invite')}

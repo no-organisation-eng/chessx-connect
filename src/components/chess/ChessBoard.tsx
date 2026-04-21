@@ -76,14 +76,14 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
                   )}
                   {piece && <ChessPiece type={piece.type} color={piece.color} />}
                   {fi === 0 && (
-                    <span className="absolute top-0.5 left-1 text-[10px] font-semibold opacity-60 font-body select-none"
-                      style={{ color: isLight ? 'hsl(145, 25%, 28%)' : 'hsl(35, 30%, 72%)' }}>
+                    <span className="absolute top-0.5 left-1 text-[10px] font-semibold opacity-70 font-body select-none"
+                      style={{ color: isLight ? 'hsl(var(--board-dark))' : 'hsl(var(--board-light))' }}>
                       {rank}
                     </span>
                   )}
                   {ri === 7 && (
-                    <span className="absolute bottom-0.5 right-1 text-[10px] font-semibold opacity-60 font-body select-none"
-                      style={{ color: isLight ? 'hsl(145, 25%, 28%)' : 'hsl(35, 30%, 72%)' }}>
+                    <span className="absolute bottom-0.5 right-1 text-[10px] font-semibold opacity-70 font-body select-none"
+                      style={{ color: isLight ? 'hsl(var(--board-dark))' : 'hsl(var(--board-light))' }}>
                       {file}
                     </span>
                   )}
