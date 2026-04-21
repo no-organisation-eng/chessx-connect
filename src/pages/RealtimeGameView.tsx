@@ -10,6 +10,7 @@ import GameStatus from '@/components/chess/GameStatus';
 import GameActions from '@/components/chess/GameActions';
 import PromotionDialog from '@/components/chess/PromotionDialog';
 import AppLayout from '@/components/layout/AppLayout';
+import ConnectionStatus from '@/components/chess/ConnectionStatus';
 import { buildInviteUrl, copyInvite } from '@/lib/invite';
 import PayStakeButton from '@/components/chess/PayStakeButton';
 
@@ -53,14 +54,14 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
       }
 
       // Already has a game? Just open it.
-      if (invite.match_id) {
-        setGameId(invite.match_id);
+      if (invite.game_id) {
+        setGameId(invite.game_id);
         setResolving(false);
         return;
       }
 
       // Creator viewing their own open invite → wait for opponent
-      if (invite.creator_user_id === userId) {
+      if (invite.creator_id === userId) {
         setResolving(false);
         return;
       }
@@ -280,7 +281,7 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
 
         <div className="flex items-center justify-between text-[10px] text-muted-foreground font-display tracking-widest uppercase px-1">
           <span>{game.row.time_control}</span>
-          <span>LIVE PVP</span>
+          <ConnectionStatus status={game.connectionStatus} />
         </div>
       </div>
     </AppLayout>

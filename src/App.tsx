@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import RequireAuth from "@/components/auth/RequireAuth";
 import { ChessGameProvider } from "@/contexts/ChessGameContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
@@ -21,6 +22,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ThemeProvider>
         <ChessGameProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -35,6 +37,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ChessGameProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

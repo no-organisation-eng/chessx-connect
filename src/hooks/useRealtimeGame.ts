@@ -69,6 +69,8 @@ function deriveFromChess(g: Chess): RealtimeGameState {
   };
 }
 
+export type RealtimeStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+
 export function useRealtimeGame(gameId: string | null) {
   const [user, setUser] = useState<any>(null);
   const [game] = useState(() => new Chess());
@@ -78,7 +80,10 @@ export function useRealtimeGame(gameId: string | null) {
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<RealtimeStatus>('connecting');
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -124,19 +129,102 @@ export function useRealtimeGame(gameId: string | null) {
     return () => { active = false; };
   }, [gameId, applyRow]);
 
+  // Refetch latest row (used after reconnect to catch missed updates)
+  const refetchRow = useCallback(async () => {
+    if (!gameId) return;
+    const { data } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+    if (data) applyRow(data as unknown as RealtimeGameRow);
+  }, [gameId, applyRow]);
+
   useEffect(() => {
     if (!gameId) return;
-    const channel = supabase
-      .channel(`game:${gameId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
-        (payload) => applyRow(payload.new as unknown as RealtimeGameRow),
-      )
-      .subscribe();
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); channelRef.current = null; };
-  }, [gameId, applyRow]);
+
+    let cancelled = false;
+
+    const connect = () => {
+      if (cancelled) return;
+      const attempt = reconnectAttemptsRef.current;
+      setConnectionStatus(attempt === 0 ? 'connecting' : 'reconnecting');
+
+      const channel = supabase
+        .channel(`game:${gameId}:${Date.now()}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+          (payload) => applyRow(payload.new as unknown as RealtimeGameRow),
+        )
+        .subscribe((status) => {
+          if (cancelled) return;
+          if (status === 'SUBSCRIBED') {
+            reconnectAttemptsRef.current = 0;
+            setConnectionStatus('connected');
+            // Catch up on any missed updates
+            refetchRow();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setConnectionStatus('disconnected');
+            scheduleReconnect();
+          }
+        });
+      channelRef.current = channel;
+    };
+
+    const scheduleReconnect = () => {
+      if (cancelled) return;
+      if (reconnectTimerRef.current) return;
+      const attempt = reconnectAttemptsRef.current;
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, capped at 30s, with jitter
+      const base = Math.min(30000, 1000 * Math.pow(2, attempt));
+      const delay = base + Math.random() * 500;
+      reconnectAttemptsRef.current = attempt + 1;
+      setConnectionStatus('reconnecting');
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        connect();
+      }, delay);
+    };
+
+    connect();
+
+    // Reconnect when browser regains connectivity / tab becomes visible
+    const handleOnline = () => {
+      reconnectAttemptsRef.current = 0;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      connect();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && connectionStatus !== 'connected') {
+        handleOnline();
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId, applyRow, refetchRow]);
 
   const pushMove = useCallback(async (move: Move) => {
     if (!gameId || !row) return;
@@ -377,5 +465,6 @@ export function useRealtimeGame(gameId: string | null) {
     myColor,
     whiteTimeMs,
     blackTimeMs,
+    connectionStatus,
   };
 }
