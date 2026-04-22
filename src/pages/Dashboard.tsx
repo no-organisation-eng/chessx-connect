@@ -70,7 +70,7 @@ const Dashboard = () => {
       .channel('profile-updates')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+        { event: 'UPDATE', schema: 'public', table: 'users', filter: `user_id=eq.${userId}` },
         () => refetchProfile()
       )
       .subscribe();
