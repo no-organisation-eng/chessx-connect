@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 
 export interface RealtimeGameRow {
   id: string;
-  white_id: string | null;
-  black_id: string | null;
+  white_user_id: string | null;
+  black_user_id: string | null;
   white_username: string | null;
   black_username: string | null;
   live_fen: string | null;
@@ -90,7 +90,7 @@ export function useRealtimeGame(gameId: string | null) {
   }, []);
 
   const myColor: 'w' | 'b' | null =
-    !row || !user ? null : row.white_id === user.id ? 'w' : row.black_id === user.id ? 'b' : null;
+    !row || !user ? null : row.white_user_id === user.id ? 'w' : row.black_user_id === user.id ? 'b' : null;
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
     setRow(r);
@@ -112,8 +112,8 @@ export function useRealtimeGame(gameId: string | null) {
     if (!gameId) return;
     let active = true;
     (async () => {
-      const { data, error } = await supabase
-        .from('games')
+        const { data, error } = await supabase
+          .from('matches')
         .select('*')
         .eq('id', gameId)
         .maybeSingle();
@@ -132,7 +132,7 @@ export function useRealtimeGame(gameId: string | null) {
   // Refetch latest row (used after reconnect to catch missed updates)
   const refetchRow = useCallback(async () => {
     if (!gameId) return;
-    const { data } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+    const { data } = await supabase.from('matches').select('*').eq('id', gameId).maybeSingle();
     if (data) applyRow(data as unknown as RealtimeGameRow);
   }, [gameId, applyRow]);
 
@@ -150,7 +150,7 @@ export function useRealtimeGame(gameId: string | null) {
         .channel(`game:${gameId}:${Date.now()}`)
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+          { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${gameId}` },
           (payload) => applyRow(payload.new as unknown as RealtimeGameRow),
         )
         .subscribe((status) => {
@@ -279,7 +279,7 @@ export function useRealtimeGame(gameId: string | null) {
         }
       : baseUpdate;
 
-    const { error } = await supabase.from('games').update(update).eq('id', gameId);
+    const { error } = await supabase.from('matches').update(update).eq('id', gameId);
     if (error) {
       toast.error('Move failed: ' + error.message);
       game.undo();
