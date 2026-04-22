@@ -24,15 +24,6 @@ const MatchHistory = () => {
 
   const userId = session?.user?.id;
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase.from('users').select('id, username').eq('user_id', userId!).maybeSingle();
-      return data;
-    },
-  });
-
   const { data: matches, isLoading } = useQuery({
     queryKey: ['matchHistory', userId],
     enabled: !!userId,
@@ -47,8 +38,6 @@ const MatchHistory = () => {
       return data ?? [];
     },
   });
-
-  const username = profile?.username ?? '';
 
   if (isLoading) {
     return (

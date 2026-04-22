@@ -232,7 +232,7 @@ export function useChessGame() {
       if (!result) return;
 
       const { error } = await supabase.from('matches').insert({
-        white_user_id: profile?.id,
+        white_user_id: user.id,
         white_username: profile?.username ?? 'You',
         black_username: aiEnabled ? 'ChessX AI' : 'Opponent',
         result,
