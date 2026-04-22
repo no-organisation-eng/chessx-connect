@@ -24,7 +24,7 @@ const MatchHistory = () => {
 
   const userId = session?.user?.id;
 
-  const { data: matches, isLoading } = useQuery({
+  const { data: matches, isLoading, refetch } = useQuery({
     queryKey: ['matchHistory', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -38,6 +38,28 @@ const MatchHistory = () => {
       return data ?? [];
     },
   });
+
+  React.useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`match-history:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matches' },
+        (payload) => {
+          const next = payload.new as { white_user_id?: string | null; black_user_id?: string | null };
+          const prev = payload.old as { white_user_id?: string | null; black_user_id?: string | null };
+          const touchesUser = next?.white_user_id === userId || next?.black_user_id === userId || prev?.white_user_id === userId || prev?.black_user_id === userId;
+          if (touchesUser) refetch();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, refetch]);
 
   if (isLoading) {
     return (
