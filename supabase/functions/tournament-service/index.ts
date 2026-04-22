@@ -131,7 +131,8 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });

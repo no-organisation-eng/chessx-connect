@@ -66,18 +66,13 @@ Deno.serve(async (req) => {
     const whiteId = creatorColor === 'w' ? invite.creator_id : userId;
     const blackId = creatorColor === 'w' ? userId : invite.creator_id;
 
-    // Look up usernames
+    // Look up usernames (matches.white_user_id / black_user_id reference auth.users.id)
     const { data: profs } = await admin
-      .from('profiles')
+      .from('users')
       .select('user_id, username')
       .in('user_id', [whiteId, blackId]);
     const whiteUsername = profs?.find((p) => p.user_id === whiteId)?.username ?? 'White';
     const blackUsername = profs?.find((p) => p.user_id === blackId)?.username ?? 'Black';
-
-    const mappedWhiteId = profs?.find((p) => p.user_id === whiteId)?.id;
-    const mappedBlackId = profs?.find((p) => p.user_id === blackId)?.id;
-
-    if (!mappedWhiteId || !mappedBlackId) return json({ error: 'Profiles not mapped' }, 500);
 
     const stake = Number(invite.stake_usdc ?? 0);
     const status = stake > 0 ? 'waiting' : 'active';
@@ -85,8 +80,8 @@ Deno.serve(async (req) => {
     const { data: game, error: gErr } = await admin
       .from('matches')
       .insert({
-        white_user_id: mappedWhiteId,
-        black_user_id: mappedBlackId,
+        white_user_id: whiteId,
+        black_user_id: blackId,
         white_username: whiteUsername,
         black_username: blackUsername,
         time_control: invite.time_control,
