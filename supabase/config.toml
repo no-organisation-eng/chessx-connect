@@ -1,1 +1,40 @@
 project_id = "vgcwtcjhhgyaneujvdal"
+
+[functions.accept-match-invite]
+verify_jwt = false
+
+[functions.anticheat-service]
+verify_jwt = false
+
+[functions.create-match-invite]
+verify_jwt = false
+
+[functions.get-stake-config]
+verify_jwt = false
+
+[functions.lichess-verification]
+verify_jwt = false
+
+[functions.matchmaking]
+verify_jwt = false
+
+[functions.notifications-service]
+verify_jwt = false
+
+[functions.reward-service]
+verify_jwt = false
+
+[functions.rewards-service]
+verify_jwt = false
+
+[functions.tournament-service]
+verify_jwt = false
+
+[functions.verify-base-signature]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
+
+[functions.wallet-service]
+verify_jwt = false
