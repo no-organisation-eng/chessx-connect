@@ -11,7 +11,7 @@ export interface RealtimeGameRow {
   black_username: string | null;
   live_fen: string | null;
   turn: 'w' | 'b' | null;
-  status: 'pending' | 'active' | 'completed' | 'aborted';
+  status: 'pending' | 'waiting' | 'active' | 'completed' | 'aborted';
   pgn: string | null;
   result: string | null;
   termination: string | null;
