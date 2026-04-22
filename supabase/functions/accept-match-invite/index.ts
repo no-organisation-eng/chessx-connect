@@ -22,8 +22,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Not authenticated' }, 401);
-    const token = authHeader.slice(7);
+    if (!authHeader?.startsWith('Bearer ')) return json({ ok: false, error: 'Not authenticated' }, 200);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -33,30 +32,30 @@ Deno.serve(async (req) => {
     });
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: userData, error: cErr } = await userClient.auth.getUser(token);
-    if (cErr || !userData?.user?.id) return json({ error: 'Invalid session' }, 401);
+    const { data: userData, error: cErr } = await userClient.auth.getUser();
+    if (cErr || !userData?.user?.id) return json({ ok: false, error: 'Invalid session' }, 200);
     const userId = userData.user.id;
 
     const { code } = (await req.json()) as Body;
-    if (!code) return json({ error: 'code required' }, 400);
+    if (!code) return json({ ok: false, error: 'code required' }, 200);
 
     const { data: invite, error: invErr } = await admin
       .from('match_invites')
       .select('*')
       .eq('code', code)
       .maybeSingle();
-    if (invErr) return json({ error: invErr.message }, 500);
-    if (!invite) return json({ error: 'Invite not found' }, 404);
+    if (invErr) return json({ ok: false, error: invErr.message }, 200);
+    if (!invite) return json({ ok: false, error: 'Invite not found' }, 200);
     if (invite.status === 'accepted' && invite.game_id) {
       return json({ ok: true, game_id: invite.game_id, already: true });
     }
-    if (invite.status !== 'open') return json({ error: 'Invite no longer open' }, 410);
+    if (invite.status !== 'open') return json({ ok: false, error: 'Invite no longer open' }, 200);
     if (new Date(invite.expires_at).getTime() < Date.now()) {
       await admin.from('match_invites').update({ status: 'expired' }).eq('id', invite.id);
-      return json({ error: 'Invite expired' }, 410);
+      return json({ ok: false, error: 'Invite expired' }, 200);
     }
     if (invite.creator_id === userId) {
-      return json({ error: 'Cannot join your own invite' }, 400);
+      return json({ ok: false, error: 'Cannot join your own invite' }, 200);
     }
 
     // Decide colors
@@ -99,7 +98,7 @@ Deno.serve(async (req) => {
       })
       .select('*')
       .single();
-    if (gErr) return json({ error: gErr.message }, 500);
+    if (gErr) return json({ ok: false, error: gErr.message }, 200);
 
     await admin
       .from('match_invites')
@@ -109,7 +108,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, game_id: game.id, game });
   } catch (e) {
     console.error('accept-match-invite error', e);
-    return json({ error: e instanceof Error ? e.message : 'unknown' }, 500);
+    return json({ ok: false, error: e instanceof Error ? e.message : 'unknown' }, 200);
   }
 });
 

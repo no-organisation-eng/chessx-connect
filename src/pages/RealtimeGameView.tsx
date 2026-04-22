@@ -184,7 +184,7 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
       <div className="flex flex-col w-full max-w-[640px] mx-auto gap-1.5">
         <GameStatus gameState={game.gameState} />
 
-        {game.row.status === 'pending' && (
+        {(game.row.status === 'pending' || game.row.status === 'waiting') && (
           <div className="flex flex-col items-center gap-4 py-8 bg-accent/5 border border-accent/20 rounded-xl animate-in fade-in zoom-in duration-500">
             <div className="flex flex-col items-center gap-1.5 text-center px-4">
               <h3 className="font-display text-sm tracking-widest uppercase text-accent font-bold">Staked Match Required</h3>
