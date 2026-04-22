@@ -40,7 +40,7 @@ const MatchHistory = () => {
       const { data, error } = await supabase
         .from('matches')
         .select('*')
-        .or(`white_user_id.eq.${profile!.id},black_user_id.eq.${profile!.id}`)
+        .or(`white_user_id.eq.${userId},black_user_id.eq.${userId}`)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -77,7 +77,7 @@ const MatchHistory = () => {
 
         <div className="space-y-3">
           {games.map((m) => {
-            const isWhite = m.white_id === userId;
+            const isWhite = m.white_user_id === userId;
             const opponent = isWhite ? m.black_username : m.white_username;
             const won = (m.result === 'white' && isWhite) || (m.result === 'black' && !isWhite);
             const drew = m.result === 'draw';
