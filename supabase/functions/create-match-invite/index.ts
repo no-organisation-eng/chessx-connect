@@ -24,9 +24,8 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Not authenticated' }, 401);
+      return json({ ok: false, error: 'Not authenticated' }, 200);
     }
-    const token = authHeader.slice(7);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -36,13 +35,13 @@ Deno.serve(async (req) => {
     });
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: userData, error: cErr } = await userClient.auth.getUser(token);
-    if (cErr || !userData?.user?.id) return json({ error: 'Invalid session' }, 401);
+    const { data: userData, error: cErr } = await userClient.auth.getUser();
+    if (cErr || !userData?.user?.id) return json({ ok: false, error: 'Invalid session' }, 200);
     const userId = userData.user.id;
 
     const body = (await req.json()) as Body;
     if (!body.time_control || !body.time_seconds) {
-      return json({ error: 'time_control and time_seconds required' }, 400);
+        return json({ ok: false, error: 'time_control and time_seconds required' }, 200);
     }
 
     const code = generateCode(8);
@@ -60,12 +59,12 @@ Deno.serve(async (req) => {
       })
       .select('*')
       .single();
-    if (invErr) return json({ error: invErr.message }, 500);
+    if (invErr) return json({ ok: false, error: invErr.message }, 200);
 
     return json({ ok: true, invite });
   } catch (e) {
     console.error('create-match-invite error', e);
-    return json({ error: e instanceof Error ? e.message : 'unknown' }, 500);
+    return json({ ok: false, error: e instanceof Error ? e.message : 'unknown' }, 200);
   }
 });
 

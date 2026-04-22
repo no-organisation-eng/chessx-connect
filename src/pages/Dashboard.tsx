@@ -44,13 +44,13 @@ const Dashboard = () => {
   });
 
   const { data: recentGames, refetch: refetchGames } = useQuery({
-    queryKey: ['recentGames', profile?.id],
-    enabled: !!profile?.id,
+    queryKey: ['recentGames', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('matches')
         .select('*')
-        .or(`white_user_id.eq.${profile!.id},black_user_id.eq.${profile!.id}`)
+        .or(`white_user_id.eq.${userId},black_user_id.eq.${userId}`)
         .order('created_at', { ascending: false })
         .limit(5);
       if (error) throw error;
