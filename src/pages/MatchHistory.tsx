@@ -34,8 +34,8 @@ const MatchHistory = () => {
   });
 
   const { data: matches, isLoading } = useQuery({
-    queryKey: ['matchHistory', profile?.id],
-    enabled: !!profile?.id,
+    queryKey: ['matchHistory', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('matches')
