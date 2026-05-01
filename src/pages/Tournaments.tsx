@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Trophy, Users, Clock, Zap, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,10 @@ const formatLabels: Record<string, string> = {
 import { toast } from 'sonner';
 
 const Tournaments = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const inviteTournamentId = searchParams.get('t');
+  const hasAttemptedJoin = useRef(false);
+
   const { data: session } = useQuery({
     queryKey: ['session'],
     queryFn: async () => {
@@ -65,6 +70,27 @@ const Tournaments = () => {
       toast.error(err.message);
     }
   };
+
+  useEffect(() => {
+    if (inviteTournamentId && userId && !isLoading && tournamentList) {
+      if (hasAttemptedJoin.current) return;
+      hasAttemptedJoin.current = true;
+      
+      const t = tournamentList.find(x => x.id === inviteTournamentId);
+      if (t) {
+        if (t.status === 'registration') {
+          joinTournament(inviteTournamentId);
+        } else {
+          toast.info('Tournament is no longer open for registration.');
+        }
+      } else {
+        toast.error('Tournament not found.');
+      }
+      
+      searchParams.delete('t');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [inviteTournamentId, userId, isLoading, tournamentList, searchParams, setSearchParams]);
 
   if (isLoading) {
     return (

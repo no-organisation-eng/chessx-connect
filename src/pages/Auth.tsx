@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,9 @@ import chessxLogo from '@/assets/chessx-logo.jpg';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/dashboard';
+  const signupFrom = location.state?.from || '/play';
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +34,7 @@ const Auth = () => {
     if (error) {
       toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
     } else {
-      navigate('/dashboard');
+      navigate(from);
     }
   };
 
@@ -50,7 +53,7 @@ const Auth = () => {
       toast({ title: 'Signup failed', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Welcome to ChessX!', description: 'Account created successfully.' });
-      navigate('/play');
+      navigate(signupFrom);
     }
   };
 
@@ -161,7 +164,7 @@ const Auth = () => {
                 const { signInWithBase } = await import('@/lib/base');
                 const res = await signInWithBase();
                 toast({ title: 'Connected', description: `Wallet ${res.address.slice(0, 6)}…${res.address.slice(-4)}` });
-                navigate('/dashboard');
+                navigate(from);
               } catch (e) {
                 toast({ title: 'Wallet sign-in failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
               } finally {

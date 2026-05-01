@@ -7,6 +7,7 @@ interface PlayerBarProps {
   capturedPieces: string[];
   timeLeft?: string;
   isLowTime?: boolean;
+  rating?: number;
 }
 
 const PIECE_VALUES: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -19,6 +20,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
   capturedPieces,
   timeLeft = '∞',
   isLowTime = false,
+  rating,
 }) => {
   const advantage = capturedPieces.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
 
@@ -30,7 +32,9 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
             isActive ? 'bg-primary animate-pulse' : 'bg-muted'
           }`}
         />
-        <span className="text-sm font-semibold text-foreground truncate">{name}</span>
+        <span className="text-sm font-semibold text-foreground truncate">
+          {name} {rating !== undefined && <span className="text-xs text-muted-foreground ml-1 font-normal">({rating})</span>}
+        </span>
         {capturedPieces.length > 0 && (
           <span className="text-xs text-muted-foreground truncate hidden xs:inline">
             {capturedPieces.map((p) => PIECE_SYMBOLS[p]).join('')}

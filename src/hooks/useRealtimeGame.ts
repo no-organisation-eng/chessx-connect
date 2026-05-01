@@ -26,6 +26,8 @@ export interface RealtimeGameRow {
   last_move_at: string | null;
   pending_draw_from: 'w' | 'b' | null;
   pending_takeback_from: 'w' | 'b' | null;
+  white_rating?: number;
+  black_rating?: number;
 }
 
 export interface RealtimeGameState {
@@ -93,19 +95,26 @@ export function useRealtimeGame(gameId: string | null) {
     !row || !user ? null : row.white_user_id === user.id ? 'w' : row.black_user_id === user.id ? 'b' : null;
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
-    setRow(r);
-    if (r.pgn) {
-      try {
-        game.loadPgn(r.pgn);
-      } catch {
-        if (r.live_fen) game.load(r.live_fen);
+    setRow(prev => {
+      const merged = {
+        ...r,
+        white_rating: r.white_rating ?? prev?.white_rating,
+        black_rating: r.black_rating ?? prev?.black_rating,
+      };
+      if (merged.pgn) {
+        try {
+          game.loadPgn(merged.pgn);
+        } catch {
+          if (merged.live_fen) game.load(merged.live_fen);
+        }
+      } else if (merged.live_fen) {
+        game.load(merged.live_fen);
+      } else {
+        game.load(STARTING_FEN);
       }
-    } else if (r.live_fen) {
-      game.load(r.live_fen);
-    } else {
-      game.load(STARTING_FEN);
-    }
-    setGameState(deriveFromChess(game));
+      setGameState(deriveFromChess(game));
+      return merged;
+    });
   }, [game]);
 
   useEffect(() => {
@@ -123,7 +132,18 @@ export function useRealtimeGame(gameId: string | null) {
         setLoading(false);
         return;
       }
-      if (data) applyRow(data as unknown as RealtimeGameRow);
+      if (data) {
+        let white_rating, black_rating;
+        if (data.white_user_id) {
+          const { data: wUser } = await supabase.from('users').select('platform_rating').eq('id', data.white_user_id).maybeSingle();
+          if (wUser) white_rating = wUser.platform_rating;
+        }
+        if (data.black_user_id) {
+          const { data: bUser } = await supabase.from('users').select('platform_rating').eq('id', data.black_user_id).maybeSingle();
+          if (bUser) black_rating = bUser.platform_rating;
+        }
+        applyRow({ ...data, white_rating, black_rating } as unknown as RealtimeGameRow);
+      }
       setLoading(false);
     })();
     return () => { active = false; };
@@ -133,7 +153,7 @@ export function useRealtimeGame(gameId: string | null) {
   const refetchRow = useCallback(async () => {
     if (!gameId) return;
     const { data } = await supabase.from('matches').select('*').eq('id', gameId).maybeSingle();
-    if (data) applyRow(data as unknown as RealtimeGameRow);
+    if (data) applyRow(data as unknown as RealtimeGameRow); // applyRow preserves existing ratings
   }, [gameId, applyRow]);
 
   useEffect(() => {

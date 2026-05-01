@@ -248,6 +248,7 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
           isActive={game.gameState.turn !== game.myColor}
           capturedPieces={flipped ? game.gameState.capturedPieces.w : game.gameState.capturedPieces.b}
           timeLeft={fmt(oppTimeMs)}
+          rating={game.myColor === 'w' ? game.row.black_rating : game.row.white_rating}
         />
 
         <ChessBoard
@@ -264,6 +265,7 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
           isActive={game.gameState.turn === game.myColor}
           capturedPieces={flipped ? game.gameState.capturedPieces.b : game.gameState.capturedPieces.w}
           timeLeft={fmt(myTimeMs)}
+          rating={game.myColor === 'w' ? game.row.white_rating : game.row.black_rating}
         />
 
         <MoveHistory moves={game.gameState.moveHistory} />
