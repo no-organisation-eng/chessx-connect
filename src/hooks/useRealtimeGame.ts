@@ -83,7 +83,7 @@ export function useRealtimeGame(gameId: string | null) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!gameId);
   const [connectionStatus, setConnectionStatus] = useState<RealtimeStatus>('connecting');
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -100,8 +100,14 @@ export function useRealtimeGame(gameId: string | null) {
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
     setRow(prev => {
+      // Correct for column naming discrepancies in row
+      const white_user_id = r.white_user_id || (r as any).white_id;
+      const black_user_id = r.black_user_id || (r as any).black_id;
+      
       const merged = {
         ...r,
+        white_user_id,
+        black_user_id,
         white_rating: r.white_rating ?? prev?.white_rating,
         black_rating: r.black_rating ?? prev?.black_rating,
       };
@@ -136,18 +142,21 @@ export function useRealtimeGame(gameId: string | null) {
         setLoading(false);
         return;
       }
+      setLoading(false);
       if (data) {
         let white_rating, black_rating;
-        const wId = data.white_user_id || data.white_id;
-        const bId = data.black_user_id || data.black_id;
+        const wId = data.white_user_id;
+        const bId = data.black_user_id;
+        
         if (wId) {
-          const { data: wUser } = await supabase.from('users').select('platform_rating').eq('id', wId).maybeSingle();
+          const { data: wUser } = await supabase.from('users').select('platform_rating').eq('user_id', wId).maybeSingle();
           if (wUser) white_rating = wUser.platform_rating;
         }
         if (bId) {
-          const { data: bUser } = await supabase.from('users').select('platform_rating').eq('id', bId).maybeSingle();
+          const { data: bUser } = await supabase.from('users').select('platform_rating').eq('user_id', bId).maybeSingle();
           if (bUser) black_rating = bUser.platform_rating;
         }
+        
         applyRow({ ...data, white_rating, black_rating } as unknown as RealtimeGameRow);
       }
       setLoading(false);
@@ -334,8 +343,11 @@ export function useRealtimeGame(gameId: string | null) {
   }, [game]);
 
   const handleSquareClick = useCallback((square: Square) => {
-    if (!row || row.status !== 'active') return;
-    if (gameState.isGameOver || pendingPromotion) return;
+    if (!row || gameState.isGameOver || !!pendingPromotion) {
+      if (!row) console.log('Board unresponsive: no row');
+      if (gameState.isGameOver) console.log('Board unresponsive: game over');
+      return;
+    }
     if (myColor !== game.turn()) return; // not your turn
 
     if (selectedSquare) {
@@ -351,6 +363,7 @@ export function useRealtimeGame(gameId: string | null) {
       try {
         const move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
         if (move) {
+          // Optimistic UI update
           setGameState(deriveFromChess(game));
           setSelectedSquare(null);
           setLegalMoves([]);
@@ -384,37 +397,55 @@ export function useRealtimeGame(gameId: string | null) {
   }, [game, pendingPromotion, pushMove]);
 
   const resign = useCallback(async () => {
-    if (!gameId || !myColor) return;
+    if (!gameId || !myColor) {
+      toast.error('Cannot resign right now');
+      return;
+    }
     const result = myColor === 'w' ? 'black' : 'white';
-    await supabase.from('matches').update({
+    const { error } = await supabase.from('matches').update({
       status: 'completed',
       result,
       termination: 'resign',
       ended_at: new Date().toISOString(),
     }).eq('id', gameId);
+
+    if (error) toast.error('Failed to resign');
+    else toast.success('You resigned');
   }, [gameId, myColor]);
 
   const offerDraw = useCallback(async () => {
     if (!gameId || !myColor || !row || row.status !== 'active') return;
     if (row.pending_draw_from) return;
-    await supabase.from('matches').update({ pending_draw_from: myColor }).eq('id', gameId);
-    toast.success('Draw offer sent');
+    const { error } = await supabase.from('matches').update({ pending_draw_from: myColor }).eq('id', gameId);
+    if (error) toast.error('Failed to send draw offer');
+    else toast.success('Draw offer sent');
   }, [gameId, myColor, row]);
 
   const acceptDraw = useCallback(async () => {
     if (!gameId || !row?.pending_draw_from || row.pending_draw_from === myColor) return;
-    await supabase.from('matches').update({
+    // Optimistic UI update
+    setRow(prev => prev ? { ...prev, status: 'completed', result: 'draw' } : null);
+    
+    const { error } = await supabase.from('matches').update({
       status: 'completed',
       result: 'draw',
       termination: 'agreement',
       ended_at: new Date().toISOString(),
       pending_draw_from: null,
     }).eq('id', gameId);
-  }, [gameId, row, myColor]);
+    
+    if (error) {
+      toast.error('Failed to accept draw');
+      refetchRow();
+    } else {
+      toast.success('Match drawn by agreement');
+    }
+  }, [gameId, row, myColor, refetchRow]);
 
   const declineDraw = useCallback(async () => {
     if (!gameId) return;
     await supabase.from('matches').update({ pending_draw_from: null }).eq('id', gameId);
+    toast('Draw offer declined');
   }, [gameId]);
 
   const offerTakeback = useCallback(async () => {
@@ -450,7 +481,7 @@ export function useRealtimeGame(gameId: string | null) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!row || row.status !== 'active') return;
-    const id = setInterval(() => setNow(Date.now()), 200);
+    const id = setInterval(() => setNow(Date.now()), 50);
     return () => clearInterval(id);
   }, [row?.status, row?.last_move_at]);
 

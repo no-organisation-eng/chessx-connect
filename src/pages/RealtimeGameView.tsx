@@ -13,6 +13,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import ConnectionStatus from '@/components/chess/ConnectionStatus';
 import { buildInviteUrl, copyInvite } from '@/lib/invite';
 import PayStakeButton from '@/components/chess/PayStakeButton';
+import { toast } from 'sonner';
 
 interface RealtimeGameViewProps {
   matchId?: string | null;
@@ -93,7 +94,10 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
         { event: 'UPDATE', schema: 'public', table: 'match_invites', filter: `code=eq.${inviteCode}` },
         (payload) => {
           const newRow = payload.new as { game_id?: string };
-          if (newRow.game_id) setGameId(newRow.game_id);
+          if (newRow.game_id) {
+            setGameId(newRow.game_id);
+            toast.success('Opponent joined! Game starting...');
+          }
         },
       )
       .subscribe();
