@@ -5,8 +5,10 @@ import { toast } from 'sonner';
 
 export interface RealtimeGameRow {
   id: string;
-  white_user_id: string | null;
-  black_user_id: string | null;
+  white_user_id?: string | null;
+  black_user_id?: string | null;
+  white_id?: string | null;
+  black_id?: string | null;
   white_username: string | null;
   black_username: string | null;
   live_fen: string | null;
@@ -91,8 +93,10 @@ export function useRealtimeGame(gameId: string | null) {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
+  const wId = row?.white_user_id || row?.white_id;
+  const bId = row?.black_user_id || row?.black_id;
   const myColor: 'w' | 'b' | null =
-    !row || !user ? null : row.white_user_id === user.id ? 'w' : row.black_user_id === user.id ? 'b' : null;
+    !row || !user ? null : wId === user.id ? 'w' : bId === user.id ? 'b' : null;
 
   const applyRow = useCallback((r: RealtimeGameRow) => {
     setRow(prev => {
@@ -134,12 +138,14 @@ export function useRealtimeGame(gameId: string | null) {
       }
       if (data) {
         let white_rating, black_rating;
-        if (data.white_user_id) {
-          const { data: wUser } = await supabase.from('users').select('platform_rating').eq('id', data.white_user_id).maybeSingle();
+        const wId = data.white_user_id || data.white_id;
+        const bId = data.black_user_id || data.black_id;
+        if (wId) {
+          const { data: wUser } = await supabase.from('users').select('platform_rating').eq('id', wId).maybeSingle();
           if (wUser) white_rating = wUser.platform_rating;
         }
-        if (data.black_user_id) {
-          const { data: bUser } = await supabase.from('users').select('platform_rating').eq('id', data.black_user_id).maybeSingle();
+        if (bId) {
+          const { data: bUser } = await supabase.from('users').select('platform_rating').eq('id', bId).maybeSingle();
           if (bUser) black_rating = bUser.platform_rating;
         }
         applyRow({ ...data, white_rating, black_rating } as unknown as RealtimeGameRow);
@@ -266,9 +272,14 @@ export function useRealtimeGame(gameId: string | null) {
     const moverColor = move.color as 'w' | 'b';
     const now = Date.now();
     const lastTs = row.last_move_at ? new Date(row.last_move_at).getTime() : now;
+    
+    // Safely check both new and old column names for time remaining
+    const rowWhiteTime = row.white_time_ms !== undefined ? row.white_time_ms : (row as any).white_time_remaining;
+    const rowBlackTime = row.black_time_ms !== undefined ? row.black_time_ms : (row as any).black_time_remaining;
+
     const baseRemaining = moverColor === 'w'
-      ? row.white_time_ms ?? row.time_seconds * 1000
-      : row.black_time_ms ?? row.time_seconds * 1000;
+      ? rowWhiteTime ?? row.time_seconds * 1000
+      : rowBlackTime ?? row.time_seconds * 1000;
     const elapsed = Math.max(0, now - lastTs);
     const increment = (row.increment_seconds ?? 0) * 1000;
     const newRemaining = Math.max(0, baseRemaining - elapsed + increment);
@@ -279,15 +290,20 @@ export function useRealtimeGame(gameId: string | null) {
       termination = 'timeout';
     }
 
-    const baseUpdate = {
+    const baseUpdate: any = {
       live_fen: newFen,
       pgn: newPgn,
       turn,
       last_move_at: new Date(now).toISOString(),
-      ...(moverColor === 'w'
-        ? { white_time_ms: newRemaining }
-        : { black_time_ms: newRemaining }),
     };
+
+    if (moverColor === 'w') {
+      if (row.white_time_ms !== undefined) baseUpdate.white_time_ms = newRemaining;
+      else if ((row as any).white_time_remaining !== undefined) baseUpdate.white_time_remaining = newRemaining;
+    } else {
+      if (row.black_time_ms !== undefined) baseUpdate.black_time_ms = newRemaining;
+      else if ((row as any).black_time_remaining !== undefined) baseUpdate.black_time_remaining = newRemaining;
+    }
 
     const update = (isOver || flagged)
       ? {
