@@ -87,20 +87,25 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
   // Subscribe to invite changes so the creator sees the game start when joiner arrives
   useEffect(() => {
     if (!inviteCode || gameId) return;
+    console.log('[RealtimeGameView] Subscribing to invite changes:', inviteCode);
     const channel = supabase
       .channel(`invite:${inviteCode}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'match_invites', filter: `code=eq.${inviteCode}` },
         (payload) => {
+          console.log('[RealtimeGameView] Invite Update Payload:', payload);
           const newRow = payload.new as { game_id?: string };
           if (newRow.game_id) {
+            console.log('[RealtimeGameView] Game ID detected, transitioning...', newRow.game_id);
             setGameId(newRow.game_id);
             toast.success('Opponent joined! Game starting...');
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[RealtimeGameView] Invite subscription status:', status);
+      });
     return () => { supabase.removeChannel(channel); };
   }, [inviteCode, gameId]);
 
@@ -187,6 +192,12 @@ const RealtimeGameView: React.FC<RealtimeGameViewProps> = ({ matchId }) => {
 
       <div className="flex flex-col w-full max-w-[640px] mx-auto gap-1.5">
         <GameStatus gameState={game.gameState} />
+        
+        {game.myColor === null && !game.loading && game.row && (
+          <div className="text-center py-2 bg-muted/20 rounded-lg text-[10px] text-muted-foreground font-display tracking-widest uppercase mb-1">
+            Spectator Mode
+          </div>
+        )}
 
         {(game.row.status === 'pending' || game.row.status === 'waiting') && (
           <div className="flex flex-col items-center gap-4 py-8 bg-accent/5 border border-accent/20 rounded-xl animate-in fade-in zoom-in duration-500">

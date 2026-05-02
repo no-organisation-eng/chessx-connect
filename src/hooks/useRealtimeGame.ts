@@ -88,17 +88,33 @@ export function useRealtimeGame(gameId: string | null) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  const wId = row?.white_user_id || row?.white_id;
-  const bId = row?.black_user_id || row?.black_id;
+  const wId = row?.white_user_id || (row as any)?.white_id;
+  const bId = row?.black_user_id || (row as any)?.black_id;
   const myColor: 'w' | 'b' | null =
     !row || !user ? null : wId === user.id ? 'w' : bId === user.id ? 'b' : null;
 
+  console.log('[useRealtimeGame] Debug:', { 
+    gameId, 
+    userId: user?.id, 
+    wId, 
+    bId, 
+    myColor, 
+    rowStatus: row?.status,
+    turn: row?.turn 
+  });
+
   const applyRow = useCallback((r: RealtimeGameRow) => {
+    console.log('[useRealtimeGame] Applying Row:', r);
     setRow(prev => {
       // Correct for column naming discrepancies in row
       const white_user_id = r.white_user_id || (r as any).white_id;
@@ -343,6 +359,12 @@ export function useRealtimeGame(gameId: string | null) {
   }, [game]);
 
   const handleSquareClick = useCallback((square: Square) => {
+    console.log('[useRealtimeGame] Square Click:', square, { 
+      hasRow: !!row, 
+      isGameOver: gameState.isGameOver, 
+      myColor, 
+      turn: game.turn() 
+    });
     if (!row || gameState.isGameOver || !!pendingPromotion) {
       if (!row) console.log('Board unresponsive: no row');
       if (gameState.isGameOver) console.log('Board unresponsive: game over');
